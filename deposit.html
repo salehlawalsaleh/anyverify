@@ -1,8 +1,13 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AmeerTech NIN Generator — Deposit</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Paystack inline -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body{font-family:Arial, sans-serif;background:#f8fafc;margin:0;padding:0;color:#1e293b}
@@ -11,6 +16,7 @@
     .card{background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
     .btn{padding:10px 14px;border:none;border-radius:6px;font-weight:600;cursor:pointer}
     .btn-main{background:#0ea5a0;color:white}
+    .btn-alt{background:#2563eb;color:#fff;margin-left:8px}
     .btn-back{background:#475569;color:white}
     input,select{padding:10px;width:100%;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:6px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
@@ -38,6 +44,8 @@
     .status-badge.declined{background:rgba(239,68,68,0.08);color:#b91c1c}
     .status-badge.cancelled{background:rgba(107,114,128,0.08);color:#374151}
     .tx-note{font-size:13px;color:#334155}
+    .row {display:flex; gap:8px; align-items:center}
+    @media (max-width:520px){ .row {flex-direction:column} .btn-alt{margin-left:0} }
   </style>
 </head>
 <body>
@@ -45,6 +53,7 @@
   <div>AmeerTech Deposit</div>
   <div><button class="btn btn-back" onclick="window.location.href='dashboard.html'">Back</button></div>
 </header>
+
 <div class="container">
   <div id="currentBox" class="card hidden" aria-live="polite">
     <h2>Current Transaction</h2>
@@ -54,10 +63,14 @@
   <div id="depositForm" class="card">
     <h2>Add Fund</h2>
     <p style="color:red;font-weight:600">⚠ Minimum deposit ₦210 (₦200 per generate NIN)</p>
+
     <div id="step1">
       <label>Amount</label>
       <input type="number" id="depAmount" placeholder="Enter amount" required>
-      <button class="btn btn-main" onclick="goStep2()">Next</button>
+      <div class="row" style="margin-top:8px">
+        <button class="btn btn-main" id="payCardBtn" onclick="startPaystackDeposit()">Pay with Card</button>
+        <button class="btn btn-alt" onclick="goStep2()">Pay by Bank (Manual)</button>
+      </div>
     </div>
 
     <div id="step2" class="hidden">
@@ -68,8 +81,10 @@
         <tr><th>Account Name</th><td>Saleh Saleh Lawal</td></tr>
         <tr><th>Account Number</th><td>8145415083 <i class="fa fa-copy"></i></td></tr>
       </table>
-      <button class="btn btn-back" onclick="backStep1()">Back</button>
-      <button class="btn btn-main" onclick="goStep3()">I Have Sent</button>
+      <div style="margin-top:8px">
+        <button class="btn btn-back" onclick="backStep1()">Back</button>
+        <button class="btn btn-main" onclick="goStep3()">I Have Sent</button>
+      </div>
     </div>
 
     <div id="step3" class="hidden">
@@ -82,8 +97,10 @@
       <input type="date" id="senderDate" required>
       <label>Transfer Time</label>
       <input type="time" id="senderTime" required>
-      <button class="btn btn-back" onclick="backStep2()">Back</button>
-      <button class="btn btn-main" onclick="submitDeposit()">Submit</button>
+      <div style="margin-top:8px">
+        <button class="btn btn-back" onclick="backStep2()">Back</button>
+        <button class="btn btn-main" onclick="submitDeposit()">Submit</button>
+      </div>
     </div>
   </div>
 
@@ -109,6 +126,7 @@
   import { getDatabase, ref, push, set, update, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+  // Firebase config (your project)
   const firebaseConfig={
     apiKey:"AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
     authDomain:"ameernin-ba310.firebaseapp.com",
@@ -132,6 +150,7 @@
   const historyLoader=document.getElementById("historyLoader");
   const historyListEl=document.getElementById("historyList");
   const refreshBtn=document.getElementById("refreshHistoryBtn");
+  const payCardBtn = document.getElementById("payCardBtn");
 
   function goStep2(){ document.getElementById("step1").classList.add("hidden"); document.getElementById("step2").classList.remove("hidden"); }
   function goStep3(){ document.getElementById("step2").classList.add("hidden"); document.getElementById("step3").classList.remove("hidden"); }
@@ -174,7 +193,7 @@
       snap.forEach(ch=>{
         const d = ch.val();
         const s = (d.status||'').toString().toLowerCase();
-        if(s === 'submitted' || s === 'processing') pending = true;
+        if(s === 'submitted' || s === 'processing' || s === 'initiated') pending = true;
       });
       return pending;
     }catch(e){
@@ -183,99 +202,89 @@
     }
   }
 
-  // ---------- submitDeposit: atomic multi-path write ----------
+  // ---------- existing manual submitDeposit (bank transfer) ----------
   window.submitDeposit = async function(){
-    if(!uid){
-      alert("You must be signed in to submit a deposit.");
-      return;
-    }
-
+    if(!uid){ alert("You must be signed in to submit a deposit."); return; }
     const amt = Number(document.getElementById("depAmount").value || 0);
-    if(!amt || amt < 210){
-      alert("Minimum deposit ₦210");
-      return;
-    }
-
+    if(!amt || amt < 210){ alert("Minimum deposit ₦210"); return; }
     const pending = await hasPendingDepositOnce();
-    if(pending){
-      alert("You already have a pending deposit (submitted/processing). Wait for admin action before submitting another.");
-      return;
-    }
-
+    if(pending){ alert("You already have a pending deposit (submitted/processing). Wait for admin action before submitting another."); return; }
     const no = document.getElementById("senderNo").value.trim();
     const bank = document.getElementById("senderBank").value.trim();
     const d = document.getElementById("senderDate").value;
     const t = document.getElementById("senderTime").value;
 
-    console.log("Submitting deposit", { uid, amt, no, bank, d, t, authUser: auth.currentUser && auth.currentUser.uid });
-
     try{
-      // reserve keys
       const depRef = push(ref(db, `deposits/${uid}`));
       const depId = depRef.key;
       const txRef = push(ref(db, `users/${uid}/transactions`));
       const txId = txRef.key;
-
       const now = Date.now();
-      const depositObj = {
-        amount: amt,
-        accountNo: no || "",
-        bank: bank || "",
-        date: d || new Date().toLocaleDateString(),
-        timeTxt: t || new Date().toLocaleTimeString(),
-        status: "submitted",
-        timestamp: now,
-        updatedAt: now,
-        txKey: txId
-      };
-
-      const txObj = {
-        type: 'credit',
-        action: 'deposit',
-        amount: amt,
-        timestamp: now,
-        status: 'submitted',
-        depositId: depId,
-        updatedAt: now,
-        createdBy: 'user'
-      };
-
-      // multi-path update (atomic)
-      const updates = {};
-      updates[`deposits/${uid}/${depId}`] = depositObj;
-      updates[`users/${uid}/transactions/${txId}`] = txObj;
-
+      const depositObj = { amount: amt, accountNo: no||"", bank: bank||"", date: d||new Date().toLocaleDateString(), timeTxt: t||new Date().toLocaleTimeString(), status: "submitted", timestamp: now, updatedAt: now, txKey: txId };
+      const txObj = { type:'credit', action:'deposit', amount:amt, timestamp:now, status:'submitted', depositId:depId, updatedAt:now, createdBy:'user' };
+      const updates = {}; updates[`deposits/${uid}/${depId}`] = depositObj; updates[`users/${uid}/transactions/${txId}`] = txObj;
       await update(ref(db), updates);
-
-      // UI update (same UX as before)
-      document.getElementById("step3").classList.add("hidden");
-      document.getElementById("step1").classList.remove("hidden");
-      depositForm.classList.add("hidden");
-      currentBox.classList.remove("hidden");
-      currentContent.innerHTML=`
-        <div><i class="fa fa-check-circle icon-big success"></i></div>
-        <p>Submitted successfully.<br>Waiting approval...</p>
-        <small>${depositObj.date} ${depositObj.timeTxt}</small>
-      `;
-
-      // optional UX transition to processing
-      setTimeout(async ()=>{
-        try{
-          const u = {};
-          u[`deposits/${uid}/${depId}/status`] = "processing";
-          u[`deposits/${uid}/${depId}/updatedAt`] = Date.now();
-          u[`users/${uid}/transactions/${txId}/status`] = "processing";
-          u[`users/${uid}/transactions/${txId}/updatedAt`] = Date.now();
-          await update(ref(db), u);
-          loadDeposits();
-        }catch(e){ console.error('processing update failed', e); }
-      }, 3000);
-
+      document.getElementById("step3").classList.add("hidden"); document.getElementById("step1").classList.remove("hidden");
+      depositForm.classList.add("hidden"); currentBox.classList.remove("hidden");
+      currentContent.innerHTML=`<div><i class="fa fa-check-circle icon-big success"></i></div><p>Submitted successfully.<br>Waiting approval...</p><small>${depositObj.date} ${depositObj.timeTxt}</small>`;
+      setTimeout(async ()=>{ try{ const u={}; u[`deposits/${uid}/${depId}/status`] = "processing"; u[`deposits/${uid}/${depId}/updatedAt`] = Date.now(); u[`users/${uid}/transactions/${txId}/status`] = "processing"; u[`users/${uid}/transactions/${txId}/updatedAt`] = Date.now(); await update(ref(db), u); loadDeposits(); }catch(e){ console.error('processing update failed', e); } }, 3000);
     }catch(e){
-      console.error("submitDeposit failed", e && (e.code || e.message) ? (e.code || e.message) : e);
-      alert("Failed to submit deposit. Check console (F12) for details.");
+      console.error("submitDeposit failed", e); alert("Failed to submit deposit. Check console (F12) for details.");
     }
   };
+
+  // ---------- NEW: startPaystackDeposit ----------
+  async function startPaystackDeposit(){
+    if(!uid){ alert("You must be signed in to deposit."); return; }
+    const amt = Number(document.getElementById("depAmount").value || 0);
+    if(!amt || amt < 210){ alert("Minimum deposit ₦210"); return; }
+
+    // disable button to avoid double-click
+    payCardBtn.disabled = true; payCardBtn.textContent = 'Opening payment...';
+
+    try{
+      // 1) call init-pay to create reservation & get Paystack init response
+      const res = await fetch('/.netlify/functions/init-pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, email: (auth.currentUser && auth.currentUser.email) || '', amount: amt })
+      });
+
+      const init = await res.json();
+      if (!res.ok || !init || !init.status || !init.data || !init.data.reference) {
+        console.error('init-pay failed', init);
+        alert('Failed to start payment. Try again.');
+        payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+        return;
+      }
+
+      const reference = init.data.reference;
+      const amountKobo = Math.round(amt * 100);
+
+      // 2) open Paystack popup
+      const handler = PaystackPop.setup({
+        key: "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11", // <-- change to pk_live_... when ready
+        email: (auth.currentUser && auth.currentUser.email) || '',
+        amount: amountKobo,
+        ref: reference,
+        currency: "NGN",
+        callback: function(response){
+          // On success in popup: we inform user and rely on webhook to update DB.
+          alert('Payment submitted. Waiting for confirmation...');
+          payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+        },
+        onClose: function(){
+          payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+          console.log('User closed Paystack window');
+        }
+      });
+      handler.openIframe();
+    }catch(err){
+      console.error('startPaystackDeposit error', err);
+      alert('Error initiating payment. Try again.');
+      payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+    }
+  }
 
   // ---------- load deposits-only history & current ----------
   async function loadDeposits(){
@@ -283,7 +292,6 @@
       historyLoader.textContent = 'Not signed in.';
       return;
     }
-
     historyLoader.style.display = 'block';
     historyListEl.style.display = 'none';
     historyListEl.innerHTML = '';
@@ -295,16 +303,13 @@
         depositForm.classList.remove('hidden');
         return;
       }
-
       const arr = [];
       snap.forEach(ch=>{
         arr.push({ id: ch.key, ...ch.val() });
       });
       arr.sort((a,b)=> (b.updatedAt || b.timestamp || 0) - (a.updatedAt || a.timestamp || 0));
-
       const latest = arr[0];
       renderCurrent(latest, arr);
-
       arr.slice(0,20).forEach(d=>{
         const item = document.createElement('div');
         item.className = 'tx-item';
@@ -314,26 +319,21 @@
         const typeSpan = document.createElement('span'); typeSpan.className = 'tx-type credit'; typeSpan.textContent = 'DEPOSIT';
         title.appendChild(typeSpan);
         title.appendChild(amtSpan);
-
         const status = (d.status||'').toString().toLowerCase();
         if(status){
           const sb = document.createElement('span'); sb.className = 'status-badge ' + status; sb.textContent = status.toUpperCase();
           title.appendChild(sb);
         }
-
         const note = document.createElement('div'); note.className='tx-note';
         note.textContent = d.accountNo ? `From: ${d.accountNo} (${d.bank||''})` : (d.note||'Deposit record');
         left.appendChild(title);
         left.appendChild(note);
-
         const right = document.createElement('div'); right.className='tx-date';
         const ts = d.updatedAt || d.timestamp || Date.now();
         right.textContent = new Date(Number(ts)).toLocaleString();
-
         item.appendChild(left); item.appendChild(right);
         historyListEl.appendChild(item);
       });
-
       historyLoader.style.display='none';
       historyListEl.style.display='block';
     }catch(e){
@@ -349,55 +349,28 @@
       return;
     }
     currentBox.classList.remove('hidden');
-
     const s = (latest.status||'').toString().toLowerCase();
-    if(s === 'submitted' || s === 'processing'){
+    if(s === 'submitted' || s === 'processing' || s === 'initiated'){
       depositForm.classList.add('hidden');
     } else {
       const anyPending = allDeposits.some(d => {
         const st = (d.status||'').toString().toLowerCase();
-        return st === 'submitted' || st === 'processing';
+        return st === 'submitted' || st === 'processing' || st === 'initiated';
       });
-      if(anyPending) depositForm.classList.add('hidden');
-      else depositForm.classList.remove('hidden');
+      if(anyPending) depositForm.classList.add('hidden'); else depositForm.classList.remove('hidden');
     }
-
     if(s === 'submitted'){
-      currentContent.innerHTML=`
-        <div><i class="fa fa-check-circle icon-big success"></i></div>
-        <p>Submitted successfully.<br>Waiting approval...</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
-    } else if(s === 'processing'){
-      currentContent.innerHTML=`
-        <div class="circle"><i class="fa fa-clock icon-big processing"></i></div>
-        <p>Transaction processing ₦${latest.amount}...</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
+      currentContent.innerHTML=`<div><i class="fa fa-check-circle icon-big success"></i></div><p>Submitted successfully.<br>Waiting approval...</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
+    } else if(s === 'processing' || s === 'initiated'){
+      currentContent.innerHTML=`<div class="circle"><i class="fa fa-clock icon-big processing"></i></div><p>Transaction processing ₦${latest.amount}...</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
     } else if(s === 'approved'){
-      currentContent.innerHTML=`
-        <div><i class="fa fa-check-circle icon-big success"></i></div>
-        <p>Your transaction of ₦${latest.amount} was successful.<br>Check your dashboard.</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
+      currentContent.innerHTML=`<div><i class="fa fa-check-circle icon-big success"></i></div><p>Your transaction of ₦${latest.amount} was successful.<br>Check your dashboard.</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
     } else if(s === 'declined'){
-      currentContent.innerHTML=`
-        <div><i class="fa fa-times-circle icon-big decline"></i></div>
-        <p>Your transaction of ₦${latest.amount} was declined.<br>Not added to dashboard.</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
+      currentContent.innerHTML=`<div><i class="fa fa-times-circle icon-big decline"></i></div><p>Your transaction of ₦${latest.amount} was declined.<br>Not added to dashboard.</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
     } else if(s === 'cancelled'){
-      currentContent.innerHTML=`
-        <div><i class="fa fa-ban icon-big cancel"></i></div>
-        <p>Transaction cancelled: Not received transfer.</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
+      currentContent.innerHTML=`<div><i class="fa fa-ban icon-big cancel"></i></div><p>Transaction cancelled: Not received transfer.</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
     } else {
-      currentContent.innerHTML=`
-        <div><i class="fa fa-info-circle icon-big"></i></div>
-        <p>Last deposit: ₦${latest.amount} — ${latest.status || '—'}</p>
-        <small>${latest.date||""} ${latest.timeTxt||""}</small>
-      `;
+      currentContent.innerHTML=`<div><i class="fa fa-info-circle icon-big"></i></div><p>Last deposit: ₦${latest.amount} — ${latest.status || '—'}</p><small>${latest.date||""} ${latest.timeTxt||""}</small>`;
     }
   }
 
@@ -405,4 +378,4 @@
 
 </script>
 </body>
-</html>
+        </html>
