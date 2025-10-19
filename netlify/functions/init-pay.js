@@ -2,84 +2,67 @@
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 
-const SERVICE_ACCOUNT_JSON = process.env.FIREBASE_SERVICE_ACCOUNT;
-const DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
-
-if (!SERVICE_ACCOUNT_JSON) {
-  console.error('Missing FIREBASE_SERVICE_ACCOUNT env var');
-}
-
-if (!admin.apps.length) {
-  try {
-    const sa = SERVICE_ACCOUNT_JSON ? JSON.parse(SERVICE_ACCOUNT_JSON) : null;
-    admin.initializeApp({
-      credential: sa ? admin.credential.cert(sa) : undefined,
-      databaseURL: DATABASE_URL,
-    });
-  } catch (err) {
-    console.error('Failed to init firebase-admin', err);
-  }
-}
-const db = admin.database();
-
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ message: 'Method Not Allowed' }) };
-  }
+exports.handler = async (event, context) => {
+  console.log('DEBUG: init-pay received request');
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   try {
     const body = JSON.parse(event.body || '{}');
     const { uid, email, amount } = body;
-    if (!uid || !email || !amount) {
-      return { statusCode: 400, body: JSON.stringify({ message: 'Missing uid/email/amount' }) };
-    }
+    if (!uid || !amount) return { statusCode: 400, body: JSON.stringify({ error: 'uid and amount required' }) };
 
-    const amountKobo = Math.round(Number(amount) * 100);
+    // Init firebase-admin if not initialized
+    if (!admin.apps.length) {
+      const svc = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      admin.initializeApp({
+        credential: admin.credential.cert(svc),
+        databaseURL: process.env.FIREBASE_DATABASE_URL
+      });
+    }
+    const db = admin.database();
+
+    // Create a unique reference (Paystack also returns one, but we set ours to keep match)
+    const reference = `REF_${Date.now()}_${Math.floor(Math.random()*10000)}`;
 
     // Initialize Paystack transaction
     const initRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email,
-        amount: amountKobo,
-        metadata: { uid, purpose: 'deposit' },
-      }),
+        email: email || 'no-reply@local',
+        amount: Math.round(amount * 100),
+        reference,
+        metadata: { uid }
+      })
     });
 
-    const initJson = await initRes.json();
-    if (!initRes.ok || !initJson || !initJson.data || !initJson.data.reference) {
-      console.error('Paystack initialize error', initJson);
-      return { statusCode: 502, body: JSON.stringify({ message: 'Paystack initialize failed', detail: initJson }) };
+    const initData = await initRes.json();
+    if (!initRes.ok) {
+      console.error('Paystack init error', initData);
+      return { statusCode: 500, body: JSON.stringify({ error: 'Paystack initialization failed', details: initData }) };
     }
 
-    const reference = initJson.data.reference;
-
-    // Store deposit in Firebase under deposits/{uid}/{pushId}
-    const depositsRef = db.ref(`deposits/${uid}`);
-    const newRef = depositsRef.push();
+    // Save a deposit record with status 'initiated'
+    const depRef = db.ref(`deposits/${uid}`).push();
     const depositObj = {
+      amount,
       reference,
-      amount: Number(amount),
-      amountKobo,
-      uid,
-      email,
       status: 'initiated',
-      createdAt: Date.now(),
+      timestamp: Date.now(),
       updatedAt: Date.now(),
+      payment_init: initData.data || {}
     };
-    await newRef.set(depositObj);
+    await depRef.set(depositObj);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, data: initJson.data }),
+      body: JSON.stringify({ success: true, data: initData.data, depositKey: depRef.key })
     };
   } catch (err) {
-    console.error('init-pay handler error', err);
-    return { statusCode: 500, body: JSON.stringify({ success: false, error: err.message }) };
+    console.error('init-pay error', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
