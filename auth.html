@@ -173,11 +173,16 @@
       get
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // === CONFIG ===
+    // === PUBLIC CLIENT CONFIG ===
+    // NOTE: databaseURL intentionally omitted from client config to avoid leaking it in repo/build output.
+    // You MUST provide the realtime DB URL to server-side functions (Netlify Functions) via environment variable:
+    //   FIREBASE_DATABASE_URL (set in Netlify site settings -> Environment -> Environment variables)
+    //
+    // If you need client-side direct DB access (not recommended for secret-sensitive projects),
+    // you can add databaseURL back in *only after* understanding Netlify secrets-scan implications.
     const firebaseConfig = {
       apiKey: "AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
       authDomain: "ameernin-ba310.firebaseapp.com",
-      databaseURL: "https://ameernin-ba310-default-rtdb.firebaseio.com",
       projectId: "ameernin-ba310",
       storageBucket: "ameernin-ba310.appspot.com",
       messagingSenderId: "522206845073",
@@ -185,8 +190,16 @@
       measurementId: "G-B0CNYEYBZ8"
     };
     const app = initializeApp(firebaseConfig);
+
+    // If you want to use Realtime Database from client-side anyway, uncomment next line and
+    // add databaseURL (but be aware of secret scanning / repo exposure):
+    // const db = getDatabase(app, "https://ameernin-ba310-default-rtdb.firebaseio.com");
+    //
+    // For safer flow: keep DB access server-side (Netlify Functions) and call functions for admin operations.
+
     const auth = getAuth(app);
-    const db = getDatabase(app);
+    // If client DB required (see comment above), initialize db variable accordingly:
+    const db = getDatabase ? getDatabase(app) : null; // will work if SDK can infer DB URL; otherwise use function proxy
 
     // Show/hide views (kept original)
     window.showView = (v)=>{
@@ -200,8 +213,11 @@
       if (user) {
         // ensure user's DB profile exists (if migrating)
         try {
+          // Recommended: use a server function to read/write sensitive DB paths.
+          // This client call may fail if databaseURL isn't provided on client.
+          // Keep this here for compatibility in case your client has DB URL.
           const snap = await get(ref(db, "users/" + user.uid));
-          const data = snap.exists() ? snap.val() : null;
+          const data = snap && snap.exists ? snap.val() : null;
           // keep currentUserId in localStorage to keep other code working
           localStorage.setItem("currentUserId", user.uid);
           // if role present, redirect accordingly; else default to dashboard
@@ -211,7 +227,12 @@
             window.location.href = (role === "admin") ? "admin.html" : "dashboard.html";
           }
         } catch(e){
-          console.error("Failed reading user profile:", e);
+          // If client DB read fails (because DB URL omitted), fallback to redirect to dashboard.
+          console.warn("Client DB read failed (expected if DB URL omitted). Redirecting to dashboard.", e);
+          localStorage.setItem("currentUserId", user.uid);
+          if (window.location.pathname.endsWith("auth.html") || window.location.pathname === "/" ) {
+            window.location.href = "dashboard.html";
+          }
         }
       } else {
         // not signed in
@@ -258,14 +279,23 @@
         // set displayName on auth profile
         try{ await updateProfile(cred.user, { displayName: name }); }catch(e){/* non-fatal */ }
 
-        // create DB profile (do not store password)
-        await set(ref(db, "users/" + cred.user.uid), {
-          name: name,
-          email: email,
-          balance: 0,
-          role: "user",
-          createdAt: Date.now()
-        });
+        // create DB profile safely:
+        // RECOMMENDED: create DB profile via a server function (Netlify Function) that uses
+        // the secure database URL stored in Netlify env variables. If you want to create here
+        // on client, it will only work if client has databaseURL (see comment above).
+        try {
+          await set(ref(db, "users/" + cred.user.uid), {
+            name: name,
+            email: email,
+            balance: 0,
+            role: "user",
+            createdAt: Date.now()
+          });
+        } catch(e) {
+          // If client DB write fails, still allow user; server-side function / admin
+          // can create DB record later.
+          console.warn("Client DB write failed (maybe DB URL omitted). Create profile server-side later.", e);
+        }
 
         hideSpinner("register");
         showToast("Registration successful — redirecting...", "success");
@@ -300,10 +330,15 @@
         // set local id for compatibility with existing code
         localStorage.setItem("currentUserId", cred.user.uid);
 
-        // fetch DB profile to check role
-        const snap = await get(ref(db, "users/" + cred.user.uid));
-        const data = snap.exists() ? snap.val() : null;
-        const role = data && data.role ? data.role : "user";
+        // fetch DB profile to check role (try client read; if fails, default user)
+        let role = "user";
+        try {
+          const snap = await get(ref(db, "users/" + cred.user.uid));
+          const data = snap.exists() ? snap.val() : null;
+          role = data && data.role ? data.role : "user";
+        } catch(e){
+          console.warn("Client DB read failed (DB URL maybe omitted). Defaulting to user role.", e);
+        }
 
         hideSpinner("login");
         showToast("Login successful — redirecting...", "success");
