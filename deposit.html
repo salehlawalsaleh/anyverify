@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>AmeerTech NIN Generator — Deposit</title>
-
-  <!-- Paystack inline -->
-  <script src="https://js.paystack.co/v1/inline.js"></script>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -123,10 +120,10 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, set, update, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, push, update, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  // Firebase config (your project)
+  // ---------- Firebase config (replace if different) ----------
   const firebaseConfig={
     apiKey:"AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
     authDomain:"ameernin-ba310.firebaseapp.com",
@@ -136,36 +133,34 @@
     messagingSenderId:"522206845073",
     appId:"1:522206845073:web:3c85714bd7eda6c1048730"
   };
-  const app=initializeApp(firebaseConfig);
-  const db=getDatabase(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
   const auth = getAuth(app);
 
-  let uid = null;
-  let depositsUnsub = null;
-  let txsUnsub = null;
+  // ---------- UI refs ----------
+  const currentBox = document.getElementById('currentBox');
+  const currentContent = document.getElementById('currentContent');
+  const depositForm = document.getElementById('depositForm');
+  const historyLoader = document.getElementById('historyLoader');
+  const historyListEl = document.getElementById('historyList');
+  const refreshBtn = document.getElementById('refreshHistoryBtn');
+  const payCardBtn = document.getElementById('payCardBtn');
 
-  const currentBox=document.getElementById("currentBox");
-  const currentContent=document.getElementById("currentContent");
-  const depositForm=document.getElementById("depositForm");
-  const historyLoader=document.getElementById("historyLoader");
-  const historyListEl=document.getElementById("historyList");
-  const refreshBtn=document.getElementById("refreshHistoryBtn");
-  const payCardBtn = document.getElementById("payCardBtn");
-
+  // ---------- simple navigation helpers ----------
   function goStep2(){ document.getElementById("step1").classList.add("hidden"); document.getElementById("step2").classList.remove("hidden"); }
   function goStep3(){ document.getElementById("step2").classList.add("hidden"); document.getElementById("step3").classList.remove("hidden"); }
   function backStep1(){ document.getElementById("step2").classList.add("hidden"); document.getElementById("step1").classList.remove("hidden"); }
   function backStep2(){ document.getElementById("step3").classList.add("hidden"); document.getElementById("step2").classList.remove("hidden"); }
   window.goStep2=goStep2; window.goStep3=goStep3; window.backStep1=backStep1; window.backStep2=backStep2;
 
-  // debounce loader
-  let loadTimer = null;
+  // ---------- reactive state ----------
+  let uid = null;
+  let depositsUnsub = null;
+  let txsUnsub = null;
+
   function scheduleLoadDeposits(delay = 250){
-    if(loadTimer) clearTimeout(loadTimer);
-    loadTimer = setTimeout(() => {
-      loadDeposits().catch(e => console.error('loadDeposits error (scheduled)', e));
-      loadTimer = null;
-    }, delay);
+    if (window._loadTimer) clearTimeout(window._loadTimer);
+    window._loadTimer = setTimeout(()=>{ loadDeposits().catch(e=>console.error(e)); window._loadTimer = null; }, delay);
   }
 
   onAuthStateChanged(auth, (user) => {
@@ -180,7 +175,7 @@
     } else {
       uid = null;
       localStorage.removeItem("currentUserId");
-      window.location.href = "auth.html";
+      window.location.href = 'auth.html';
     }
   });
 
@@ -202,7 +197,7 @@
     }
   }
 
-  // ---------- existing manual submitDeposit (bank transfer) ----------
+  // ---------- manual bank transfer flow (unchanged) ----------
   window.submitDeposit = async function(){
     if(!uid){ alert("You must be signed in to submit a deposit."); return; }
     const amt = Number(document.getElementById("depAmount").value || 0);
@@ -213,7 +208,6 @@
     const bank = document.getElementById("senderBank").value.trim();
     const d = document.getElementById("senderDate").value;
     const t = document.getElementById("senderTime").value;
-
     try{
       const depRef = push(ref(db, `deposits/${uid}`));
       const depId = depRef.key;
@@ -233,17 +227,49 @@
     }
   };
 
-  // ---------- NEW: startPaystackDeposit ----------
+  // ---------- Paystack safe loader ----------
+  function loadPaystackInline(timeoutMs = 8000) {
+    if (window.PaystackPop) return Promise.resolve(window.PaystackPop);
+    // if already present script tag, wait for it to initialize
+    const existing = Array.from(document.scripts).find(s => s.src && s.src.includes('js.paystack.co'));
+    if (existing) {
+      return new Promise((resolve,reject) => {
+        const start = Date.now();
+        const iv = setInterval(()=> {
+          if (window.PaystackPop) { clearInterval(iv); resolve(window.PaystackPop); }
+          else if (Date.now() - start > timeoutMs) { clearInterval(iv); reject(new Error('Paystack script existed but did not initialize')); }
+        }, 150);
+      });
+    }
+    // create script
+    return new Promise((resolve,reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://js.paystack.co/v1/inline.js';
+      s.async = true;
+      s.onload = () => {
+        if (window.PaystackPop) return resolve(window.PaystackPop);
+        // small wait loop
+        let waited = 0;
+        const interval = setInterval(()=>{
+          waited += 100;
+          if (window.PaystackPop) { clearInterval(interval); resolve(window.PaystackPop); }
+          else if (waited > timeoutMs) { clearInterval(interval); reject(new Error('Paystack loaded but PaystackPop not available')); }
+        }, 100);
+      };
+      s.onerror = () => reject(new Error('Failed to load Paystack script (network or blocked)'));
+      document.head.appendChild(s);
+    });
+  }
+
+  // ---------- startPaystackDeposit (uses init-pay Netlify function) ----------
   async function startPaystackDeposit(){
     if(!uid){ alert("You must be signed in to deposit."); return; }
     const amt = Number(document.getElementById("depAmount").value || 0);
     if(!amt || amt < 210){ alert("Minimum deposit ₦210"); return; }
 
-    // disable button to avoid double-click
     payCardBtn.disabled = true; payCardBtn.textContent = 'Opening payment...';
 
     try{
-      // 1) call init-pay to create reservation & get Paystack init response
       const res = await fetch('/.netlify/functions/init-pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -261,24 +287,42 @@
       const reference = init.data.reference;
       const amountKobo = Math.round(amt * 100);
 
-      // 2) open Paystack popup
-      const handler = PaystackPop.setup({
-        key: "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11", // <-- change to pk_live_... when ready
-        email: (auth.currentUser && auth.currentUser.email) || '',
-        amount: amountKobo,
-        ref: reference,
-        currency: "NGN",
-        callback: function(response){
-          // On success in popup: we inform user and rely on webhook to update DB.
-          alert('Payment submitted. Waiting for confirmation...');
-          payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
-        },
-        onClose: function(){
-          payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
-          console.log('User closed Paystack window');
-        }
-      });
-      handler.openIframe();
+      // ensure Paystack loaded
+      let Paystack;
+      try { Paystack = await loadPaystackInline(8000); }
+      catch(err){
+        console.error('Paystack load error', err);
+        alert('Could not load Paystack. Disable any adblocker or network filter and try again.');
+        payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+        return;
+      }
+
+      // use PaystackPop.setup (global)
+      const handler = (window.PaystackPop && typeof window.PaystackPop.setup === 'function')
+        ? window.PaystackPop.setup({
+            key: "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11", // test key — switch to live when ready
+            email: (auth.currentUser && auth.currentUser.email) || '',
+            amount: amountKobo,
+            ref: reference,
+            currency: "NGN",
+            callback: function(response){
+              alert('Payment submitted. Waiting for confirmation...');
+              payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+            },
+            onClose: function(){
+              payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+              console.log('User closed Paystack window');
+            }
+          })
+        : null;
+
+      if (handler && typeof handler.openIframe === 'function') handler.openIframe();
+      else if (window.PaystackPop && typeof window.PaystackPop.openIframe === 'function') window.PaystackPop.openIframe();
+      else {
+        alert('Payment widget not available. Try again later.');
+        payCardBtn.disabled = false; payCardBtn.textContent = 'Pay with Card';
+      }
+
     }catch(err){
       console.error('startPaystackDeposit error', err);
       alert('Error initiating payment. Try again.');
@@ -304,30 +348,22 @@
         return;
       }
       const arr = [];
-      snap.forEach(ch=>{
-        arr.push({ id: ch.key, ...ch.val() });
-      });
+      snap.forEach(ch=> arr.push({ id: ch.key, ...ch.val() }) );
       arr.sort((a,b)=> (b.updatedAt || b.timestamp || 0) - (a.updatedAt || a.timestamp || 0));
       const latest = arr[0];
       renderCurrent(latest, arr);
       arr.slice(0,20).forEach(d=>{
-        const item = document.createElement('div');
-        item.className = 'tx-item';
+        const item = document.createElement('div'); item.className='tx-item';
         const left = document.createElement('div'); left.className='tx-left';
         const title = document.createElement('div');
         const amtSpan = document.createElement('span'); amtSpan.className='tx-amount'; amtSpan.textContent = '₦' + Number(d.amount||0).toLocaleString();
-        const typeSpan = document.createElement('span'); typeSpan.className = 'tx-type credit'; typeSpan.textContent = 'DEPOSIT';
-        title.appendChild(typeSpan);
-        title.appendChild(amtSpan);
+        const typeSpan = document.createElement('span'); typeSpan.className='tx-type credit'; typeSpan.textContent = 'DEPOSIT';
+        title.appendChild(typeSpan); title.appendChild(amtSpan);
         const status = (d.status||'').toString().toLowerCase();
-        if(status){
-          const sb = document.createElement('span'); sb.className = 'status-badge ' + status; sb.textContent = status.toUpperCase();
-          title.appendChild(sb);
-        }
+        if(status){ const sb = document.createElement('span'); sb.className='status-badge ' + status; sb.textContent = status.toUpperCase(); title.appendChild(sb); }
         const note = document.createElement('div'); note.className='tx-note';
         note.textContent = d.accountNo ? `From: ${d.accountNo} (${d.bank||''})` : (d.note||'Deposit record');
-        left.appendChild(title);
-        left.appendChild(note);
+        left.appendChild(title); left.appendChild(note);
         const right = document.createElement('div'); right.className='tx-date';
         const ts = d.updatedAt || d.timestamp || Date.now();
         right.textContent = new Date(Number(ts)).toLocaleString();
@@ -343,16 +379,11 @@
   }
 
   function renderCurrent(latest, allDeposits){
-    if(!latest){
-      currentBox.classList.add('hidden');
-      depositForm.classList.remove('hidden');
-      return;
-    }
+    if(!latest){ currentBox.classList.add('hidden'); depositForm.classList.remove('hidden'); return; }
     currentBox.classList.remove('hidden');
     const s = (latest.status||'').toString().toLowerCase();
-    if(s === 'submitted' || s === 'processing' || s === 'initiated'){
-      depositForm.classList.add('hidden');
-    } else {
+    if(s === 'submitted' || s === 'processing' || s === 'initiated'){ depositForm.classList.add('hidden'); }
+    else {
       const anyPending = allDeposits.some(d => {
         const st = (d.status||'').toString().toLowerCase();
         return st === 'submitted' || st === 'processing' || st === 'initiated';
@@ -378,4 +409,4 @@
 
 </script>
 </body>
-        </html>
+</html>
