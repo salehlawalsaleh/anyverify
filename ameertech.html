@@ -1,0 +1,429 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AmeerTech — Modern Web & EdTech Solutions</title>
+  <meta name="description" content="AmeerTech — Web development & education tech services: company sites, schools, government portals, personal sites, business stores, exams (CBT, NML), lecture hosting, quizzes and more." />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Modern touches */
+    :root{--brand:#0b5e95;--accent:#06b6d4;--muted:#6b7280}
+    .glass{background:linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.55));backdrop-filter:blur(8px);}
+    .card{box-shadow:0 8px 24px rgba(11,94,149,0.12);border-radius:12px;}
+    .btn-primary{background:var(--brand);color:#fff;border-radius:10px;padding:0.6rem 1rem}
+    .btn-ghost{background:transparent;border:1px solid rgba(11,94,149,0.08);border-radius:10px;padding:0.5rem 0.9rem}
+  </style>
+</head>
+<body class="antialiased text-gray-800 bg-gradient-to-b from-gray-50 to-white">
+  <header class="fixed w-full z-40 bg-white/70 backdrop-blur-sm border-b">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex items-center justify-between h-16">
+        <a href="#home" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white font-bold">AT</div>
+          <div>
+            <div class="text-lg font-bold" style="color:var(--brand)">AmeerTech</div>
+            <div class="text-xs text-gray-500">Web & EdTech Solutions</div>
+          </div>
+        </a><nav class="hidden lg:flex items-center gap-6 text-sm">
+      <a href="#home" class="hover:text-blue-600">Home</a>
+      <a href="#menus" class="hover:text-blue-600">Our Menus</a>
+      <a href="#about" class="hover:text-blue-600">About Us</a>
+      <a href="#exams" class="hover:text-blue-600">Exams</a>
+      <a href="#lectures" class="hover:text-blue-600">Lectures</a>
+      <a href="#staff" class="hover:text-blue-600">Staff</a>
+      <a href="#contact" class="hover:text-blue-600">Contact</a>
+      <a id="loginBtnNav" href="#login" class="px-3 py-1 btn-primary">Login / Register</a>
+    </nav>
+
+    <div class="lg:hidden">
+      <button id="mobile-toggle" class="p-2 rounded-md text-gray-600 hover:bg-gray-100">
+        <svg id="menu-open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg id="menu-close" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+<div id="mobile-menu" class="hidden lg:hidden bg-white/90 border-t">
+  <div class="px-6 py-4 space-y-2">
+    <a href="#home" class="block">Home</a>
+    <a href="#menus" class="block">Our Menus</a>
+    <a href="#about" class="block">About</a>
+    <a href="#exams" class="block">Exams</a>
+    <a href="#lectures" class="block">Lectures</a>
+    <a href="#staff" class="block">Staff</a>
+    <a href="#contact" class="block">Contact</a>
+    <a href="#login" class="block text-blue-600 font-semibold">Login / Register</a>
+  </div>
+</div>
+
+  </header>  <main id="home" class="pt-24">
+    <section class="max-w-7xl mx-auto px-6 py-16 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h1 class="text-4xl font-extrabold">AmeerTech — Modern Web & EdTech Solutions</h1>
+        <p class="mt-4 text-gray-600">We build professional websites and education platforms: company sites, school portals, government systems, personal portfolios and advanced exam/CBT engines.</p>
+        <div class="mt-6 flex gap-3">
+          <a href="#contact" class="btn-primary">Get a Quote</a>
+          <a href="#menus" class="btn-ghost">See Services</a>
+        </div><div class="mt-8 grid grid-cols-2 gap-3 text-sm text-gray-600">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded bg-blue-50 flex items-center justify-center text-blue-600 font-bold">1</div>
+        <div>
+          <div class="font-semibold">Secure CBT</div>
+          <div class="text-xs">Proctored & offline support</div>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded bg-cyan-50 flex items-center justify-center text-cyan-600 font-bold">2</div>
+        <div>
+          <div class="font-semibold">Exam Slip & Results</div>
+          <div class="text-xs">Automated printing & result check</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card overflow-hidden rounded-lg bg-white">
+    <img src="https://images.unsplash.com/photo-1526378723897-15dcf7b3a3f4?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="developer at work" class="w-full h-72 object-cover">
+    <div class="p-6">
+      <div class="text-sm text-gray-500">Trusted by institutions & startups</div>
+      <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-center">
+        <div class="p-2 border rounded">Schools</div>
+        <div class="p-2 border rounded">Govt</div>
+        <div class="p-2 border rounded">Companies</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="menus" class="max-w-7xl mx-auto px-6 py-12">
+  <h2 class="text-2xl font-bold">Our Menus — What we build</h2>
+  <p class="text-gray-600 mt-2">Custom solutions for organizations of all sizes. We follow security best practices and deliver responsive, accessible sites.</p>
+
+  <div class="grid md:grid-cols-3 gap-6 mt-6">
+    <!-- Company -->
+    <article class="p-6 border rounded card hover:shadow-lg">
+      <h3 class="font-semibold text-lg">Company Website</h3>
+      <p class="mt-2 text-sm text-gray-600">Corporate websites with About, Services, Team, Careers, Blog, contact forms and integrated client portals.</p>
+    </article>
+
+    <!-- School -->
+    <article class="p-6 border rounded card hover:shadow-lg">
+      <h3 class="font-semibold text-lg">School Portal</h3>
+      <p class="mt-2 text-sm text-gray-600">Student management, admissions, fees, timetables, teacher dashboards and exam integration (CBT, results, slips).</p>
+    </article>
+
+    <!-- Government -->
+    <article class="p-6 border rounded card hover:shadow-lg">
+      <h3 class="font-semibold text-lg">Government Portal</h3>
+      <p class="mt-2 text-sm text-gray-600">Secure information systems for ministries and agencies, public forms, e-services, and data reporting tools.</p>
+    </article>
+
+    <!-- Personal -->
+    <article class="p-6 border rounded card hover:shadow-lg">
+      <h3 class="font-semibold text-lg">Personal / Portfolio</h3>
+      <p class="mt-2 text-sm text-gray-600">Personal websites and portfolios for professionals, creatives and developers with CMS and easy updates.</p>
+    </article>
+
+    <!-- Business -->
+    <article class="p-6 border rounded card hover:shadow-lg">
+      <h3 class="font-semibold text-lg">Business / eCommerce</h3>
+      <p class="mt-2 text-sm text-gray-600">Online stores, inventory, payment integrations, invoices and delivery tracking.</p>
+    </article>
+
+    <!-- Exams (summary) -->
+    <article class="p-6 border rounded card hover:shadow-lg md:col-span-3">
+      <h3 class="font-semibold text-lg">Exams & Assessment Platforms</h3>
+      <p class="mt-2 text-sm text-gray-600">Secure exams: CBT, paper-print slips, result portals, and exam management systems.</p>
+    </article>
+  </div>
+</section>
+
+<section id="exams" class="max-w-7xl mx-auto px-6 py-12">
+  <h2 class="text-2xl font-bold">Exams & Assessment — features</h2>
+  <div class="mt-6 grid md:grid-cols-3 gap-6">
+    <div class="p-6 border rounded card">
+      <h3 class="font-semibold">CBT (Computer-Based Test)</h3>
+      <p class="mt-2 text-sm text-gray-600">Timed exams, proctoring options (live/automated), question banks with multiple question types and auto-grading for objective items.</p>
+    </div>
+    <div class="p-6 border rounded card">
+      <h3 class="font-semibold">Printable Exam Slip</h3>
+      <p class="mt-2 text-sm text-gray-600">Generate printable slips with candidate info, exam venue, and QR code for quick verification at the centre.</p>
+    </div>
+    <div class="p-6 border rounded card">
+      <h3 class="font-semibold">Result Portal</h3>
+      <p class="mt-2 text-sm text-gray-600">Secure result publication with verification, CSV/XLS export, and role-based access for admins and exam officers.</p>
+    </div>
+  </div>
+
+  <div class="mt-8 grid md:grid-cols-2 gap-6">
+    <div class="p-6 border rounded card">
+      <h4 class="font-semibold">NML Exams & Test</h4>
+      <ul class="list-disc list-inside text-sm text-gray-600 mt-3">
+        <li>Test</li>
+        <li>CBT Exams</li>
+        <li>NML Exams</li>
+        <li>Print Exam Slip</li>
+        <li>Exams Result</li>
+      </ul>
+    </div>
+    <div class="p-6 border rounded card">
+      <h4 class="font-semibold">Delivery & Verification</h4>
+      <p class="text-sm text-gray-600 mt-2">QR verification, attendance logs, candidate analytics and fraud detection tools.</p>
+    </div>
+  </div>
+</section>
+
+<section id="lectures" class="max-w-7xl mx-auto px-6 py-12 bg-white border-t">
+  <h2 class="text-2xl font-bold">Lectures & Educational Content</h2>
+  <p class="text-gray-600 mt-2">Upload recorded lectures, host live sessions (Zoom/WebRTC), organise courses and track learner progress.</p>
+  <div class="mt-6 grid md:grid-cols-3 gap-6">
+    <div class="p-6 border rounded card">
+      <h4 class="font-semibold">Lecture Hub</h4>
+      <p class="text-sm text-gray-600 mt-2">Course modules, video hosting, notes, and downloadable resources.</p>
+    </div>
+    <div class="p-6 border rounded card">
+      <h4 class="font-semibold">Quizzes & Assessments</h4>
+      <p class="text-sm text-gray-600 mt-2">Create quizzes with instant feedback, timed questions, and analytics.</p>
+    </div>
+    <div class="p-6 border rounded card">
+      <h4 class="font-semibold">Learning Analytics</h4>
+      <p class="text-sm text-gray-600 mt-2">Track progress, completion rates, and generate certificates automatically.</p>
+    </div>
+  </div>
+</section>
+
+<section id="staff" class="max-w-7xl mx-auto px-6 py-12">
+  <h2 class="text-2xl font-bold">Our Team</h2>
+  <p class="text-gray-600 mt-2">Meet the people behind AmeerTech — a small, dedicated team.</p>
+  <div class="mt-6 grid md:grid-cols-3 gap-6">
+    <!-- staff cards -->
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Aishatu" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Aishatu Lawal Saleh</div>
+        <div class="text-sm text-gray-600">Front end designer</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1545996124-4c6f9c24b2f4?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Sirlihou" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Sirlihou Lawal Saleh</div>
+        <div class="text-sm text-gray-600">Front end designer</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Ameera" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Ameera Musa Saleh</div>
+        <div class="text-sm text-gray-600">Front end designer</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Aliyu" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Aliyu Danladi</div>
+        <div class="text-sm text-gray-600">Marketing / Ads Manager</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1545996124-4c6f9c24b2f4?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Twin" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Twin S&S</div>
+        <div class="text-sm text-gray-600">Back end</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+
+    <div class="p-6 border rounded card flex gap-4 items-center">
+      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="Ameer" class="w-20 h-20 rounded-full object-cover">
+      <div>
+        <div class="font-semibold">Ameer Lawal Saleh</div>
+        <div class="text-sm text-gray-600">Founder</div>
+        <div class="text-xs text-gray-400">Gsm: Not available yet</div>
+        <div class="text-xs text-gray-400">Address: Not released yet</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="quiz" class="max-w-7xl mx-auto px-6 py-12">
+  <div class="bg-gradient-to-br from-white to-blue-50 p-6 rounded card">
+    <h3 class="text-xl font-semibold">Quick Quiz (Demo)</h3>
+    <div id="quiz-area" class="mt-4">
+      <p class="text-sm">Which of these is a server-side language?</p>
+      <div class="mt-2 flex gap-2">
+        <button class="quiz-btn px-3 py-2 border rounded" data-correct="false">HTML</button>
+        <button class="quiz-btn px-3 py-2 border rounded" data-correct="true">Node.js</button>
+        <button class="quiz-btn px-3 py-2 border rounded" data-correct="false">CSS</button>
+      </div>
+      <p id="quiz-res" class="mt-3 text-sm"></p>
+    </div>
+  </div>
+</section>
+
+<section id="login" class="max-w-3xl mx-auto px-6 py-12">
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="p-6 bg-white rounded card">
+      <h3 class="text-lg font-semibold">Account</h3>
+      <p class="text-sm text-gray-600 mt-2">Select Login or Register — the buttons show which mode is active.</p>
+
+      <div class="mt-4 flex gap-3">
+        <button id="modeLogin" class="px-4 py-2 btn-primary">Login</button>
+        <button id="modeRegister" class="px-4 py-2 border rounded btn-ghost">Register</button>
+      </div>
+
+      <div id="formWrap" class="mt-6">
+        <!-- login form by default -->
+        <form id="loginFormMain" class="space-y-3">
+          <div>
+            <label class="text-sm">Email</label>
+            <input name="email" type="email" class="mt-1 block w-full border rounded p-2" required />
+          </div>
+          <div>
+            <label class="text-sm">Password</label>
+            <input name="password" type="password" class="mt-1 block w-full border rounded p-2" required />
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox"/> Remember me</label>
+            <a href="#" class="text-sm text-blue-600">Forgot?</a>
+          </div>
+          <div>
+            <button type="submit" class="w-full btn-primary">Login</button>
+          </div>
+        </form>
+
+        <form id="registerFormMain" class="space-y-3 hidden">
+          <div>
+            <label class="text-sm">Full name</label>
+            <input name="name" class="mt-1 block w-full border rounded p-2" required />
+          </div>
+          <div>
+            <label class="text-sm">Email</label>
+            <input name="email" type="email" class="mt-1 block w-full border rounded p-2" required />
+          </div>
+          <div>
+            <label class="text-sm">Password</label>
+            <input name="password" type="password" class="mt-1 block w-full border rounded p-2" required minlength="8" />
+          </div>
+          <div>
+            <label class="text-sm">Upload avatar</label>
+            <input type="file" accept="image/*" class="mt-1 block w-full" />
+          </div>
+          <div>
+            <button type="submit" class="w-full btn-primary">Create account</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="p-6 bg-white rounded card">
+      <h3 class="text-lg font-semibold">Preview & Benefits</h3>
+      <p class="text-sm text-gray-600 mt-2">Your profile, progress, saved lectures and exam slips are shown here after login. We keep data secure and private.</p>
+      <div class="mt-4">
+        <img src="https://images.unsplash.com/photo-1522202225809-9f3b8a9f3fa1?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s=placeholder" alt="dashboard preview" class="w-full rounded">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="max-w-7xl mx-auto px-6 py-12 bg-white border-t">
+  <div class="grid md:grid-cols-2 gap-6">
+    <div>
+      <h3 class="text-lg font-semibold">Contact</h3>
+      <p class="text-sm text-gray-600 mt-2">Reach us for quotes, support or custom projects.</p>
+      <p class="mt-4 text-sm">WhatsApp: <a class="text-blue-600" href="https://wa.me/2348145415083">wa.me/2348145415083</a></p>
+      <p class="text-sm mt-1">Email: <a class="text-blue-600" href="mailto:ameertech77@gmail.com">ameertech77@gmail.com</a></p>
+      <p class="text-sm mt-1">Location: Bauchi, Nigeria</p>
+    </div>
+    <form id="contactForm" class="p-4 border rounded card">
+      <label class="block text-sm">Your name</label>
+      <input name="name" class="mt-1 block w-full border rounded p-2" required />
+      <label class="block text-sm mt-3">Email</label>
+      <input name="email" type="email" class="mt-1 block w-full border rounded p-2" required />
+      <label class="block text-sm mt-3">Message</label>
+      <textarea name="message" rows="4" class="mt-1 block w-full border rounded p-2" required></textarea>
+      <button type="submit" class="mt-3 px-4 py-2 btn-primary">Send message</button>
+    </form>
+  </div>
+</section>
+
+<footer class="mt-12 bg-gray-50 border-t">
+  <div class="max-w-7xl mx-auto px-6 py-8 text-sm text-gray-600">
+    <div class="flex flex-col md:flex-row md:justify-between gap-4">
+      <div>
+        <div class="font-semibold">AmeerTech</div>
+        <div>Web & EdTech Solutions — Bauchi, Nigeria</div>
+      </div>
+      <div>
+        <div>Home • Our Menus • About Us • Contact Us</div>
+        <div class="mt-2">Email: <a class="text-blue-600" href="mailto:ameertech77@gmail.com">ameertech77@gmail.com</a> • WhatsApp: <a class="text-blue-600" href="https://wa.me/2348145415083">08145415083</a></div>
+      </div>
+    </div>
+    <div class="mt-6 text-xs text-gray-500">© 2025 AmeerTech. All rights reserved. Built with care.</div>
+  </div>
+</footer>
+
+  </main>  <script>
+    // mobile menu
+    const toggle = document.getElementById('mobile-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuOpen = document.getElementById('menu-open');
+    const menuClose = document.getElementById('menu-close');
+    toggle && toggle.addEventListener('click', ()=>{
+      const hidden = mobileMenu.classList.toggle('hidden');
+      menuOpen.classList.toggle('hidden');
+      menuClose.classList.toggle('hidden');
+    });
+
+    // login/register toggle
+    const modeLogin = document.getElementById('modeLogin');
+    const modeRegister = document.getElementById('modeRegister');
+    const loginForm = document.getElementById('loginFormMain');
+    const registerForm = document.getElementById('registerFormMain');
+
+    function setMode(mode){
+      if(mode==='login'){
+        modeLogin.classList.add('btn-primary'); modeLogin.classList.remove('btn-ghost');
+        modeRegister.classList.remove('btn-primary'); modeRegister.classList.add('btn-ghost');
+        loginForm.classList.remove('hidden'); registerForm.classList.add('hidden');
+      } else {
+        modeRegister.classList.add('btn-primary'); modeRegister.classList.remove('btn-ghost');
+        modeLogin.classList.remove('btn-primary'); modeLogin.classList.add('btn-ghost');
+        registerForm.classList.remove('hidden'); loginForm.classList.add('hidden');
+      }
+    }
+    modeLogin.addEventListener('click', ()=>setMode('login'));
+    modeRegister.addEventListener('click', ()=>setMode('register'));
+
+    // quiz
+    document.querySelectorAll('.quiz-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const correct = btn.dataset.correct === 'true';
+        const el = document.getElementById('quiz-res');
+        el.textContent = correct ? 'Correct — Node.js is server-side.' : 'Not quite — try again.';
+        el.classList.toggle('text-green-600', correct);
+      })
+    });
+
+    // demo forms
+    document.getElementById('contactForm').addEventListener('submit', (e)=>{e.preventDefault();alert('Thanks! Message sent (demo).');e.target.reset();});
+    document.getElementById('registerFormMain').addEventListener('submit',(e)=>{e.preventDefault();alert('Account created (demo)');e.target.reset();});
+    document.getElementById('loginFormMain').addEventListener('submit',(e)=>{e.preventDefault();alert('Login success (demo)');e.target.reset();});
+  </script></body>
+</html>

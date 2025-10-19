@@ -1,0 +1,636 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard — AmeerTech</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"><style>
+  /* (styles unchanged — copied from your original) */
+  body{
+    font-family:Inter, system-ui, sans-serif;
+    background:#f8fafc; margin:0; padding:0; color:#0f172a;
+  }
+  header{
+    background:linear-gradient(135deg,#007f5f,#0ea5a0);
+    color:white; padding:16px 24px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .logo-box{
+    display:flex; align-items:center; gap:12px;
+    font-weight:800; font-size:20px;
+  }
+  .logo{
+    background:white; color:#0ea5a0; font-weight:900; font-size:18px;
+    border-radius:8px; padding:6px 10px;
+  }
+  .logout-btn{
+    background:#ef4444; border:none; color:white; font-weight:700;
+    border-radius:8px; padding:8px 14px; cursor:pointer;
+  }
+  .logout-btn:hover{background:#dc2626}
+  .container{max-width:900px; margin:20px auto; padding:20px;}
+  .card{
+    background:white; border-radius:16px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+    padding:24px; margin-bottom:24px;
+  }
+  h2{margin-top:0; font-weight:700}
+  .balance-box{
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .balance{
+    font-size:28px; font-weight:800; color:#0ea5a0;
+  }
+  .btn{
+    border:none; border-radius:12px; padding:12px 18px; cursor:pointer;
+    font-weight:700; transition:.2s;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,#007f5f,#0ea5a0); color:white;
+  }
+  .btn-primary:hover{opacity:.9}
+  .slide{
+    position:relative; height:260px; overflow:hidden; border-radius:16px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.08); margin:20px 0;
+  }
+  .slide img{
+    position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;
+    opacity:0; transition:opacity 1s ease-in-out;
+  }
+  .slide img.active{opacity:1}
+  .support{
+    background:#e0f2f1; border-radius:12px; padding:16px; margin-top:20px;
+    text-align:center; font-weight:600;
+  }
+  footer{
+    margin-top:40px; padding:16px; text-align:center; font-size:14px;
+    background:#f1f5f9; color:#475569;
+  }
+
+  /* History card specifics */
+  .history-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .history-list{margin-top:12px; max-height:360px; overflow:auto; border-radius:12px; padding:8px; background:#fbfdfe; border:1px solid #e6eef0}
+  .tx-item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #eef3f5}
+  .tx-item:last-child{border-bottom:none}
+  .tx-left{display:flex;flex-direction:column;gap:4px}
+  .tx-type.credit{color:#047857;font-weight:800}
+  .tx-type.debit{color:#9b1c1c;font-weight:800}
+  .tx-amount{font-weight:800}
+  .tx-date{font-size:12px;color:#6b7280}
+  .empty-note{padding:12px;text-align:center;color:#64748b;font-weight:600}
+  .history-controls{display:flex;gap:8px;align-items:center}
+  .small-btn{background:#eef2f7;border-radius:8px;padding:8px 10px;border:none;cursor:pointer;font-weight:700}
+  .tx-note{font-size:13px;color:#334155}
+  .tx-amount{font-size:14px}
+
+  /* status badge */
+  .status-badge{
+    display:inline-block;padding:4px 8px;border-radius:10px;font-weight:700;font-size:11px;margin-left:8px;
+    background:rgba(0,0,0,0.04);
+  }
+  .status-badge.approved{background:rgba(16,185,129,0.12);color:#047857}
+  .status-badge.processing{background:rgba(249,115,22,0.08);color:#c2410c}
+  .status-badge.declined{background:rgba(239,68,68,0.08);color:#b91c1c}
+  .status-badge.cancelled{background:rgba(107,114,128,0.08);color:#374151}
+  .status-badge.insufficient{background:rgba(234,88,12,0.06);color:#92400e}
+  .status-badge.debited{background:rgba(6,78,59,0.08);color:#044b31}
+
+  /* reason text */
+  .tx-reason{font-size:12px;color:#6b7280;margin-top:6px;padding-left:4px}
+
+  /* Block overlay (full-screen white) */
+  .block-overlay {
+    position:fixed; inset:0; background:#fff; z-index:99999;
+    display:flex; align-items:center; justify-content:center; padding:28px;
+    text-align:center;
+  }
+  .block-box{max-width:760px}
+  .block-box h1{color:#b91c1c; margin:0 0 8px}
+  .block-box p{color:#374151; margin:0 0 12px}
+  .block-btn{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:10px;background:#0ea5a0;color:#fff;text-decoration:none;font-weight:700}
+
+  @media (max-width:640px){
+    .container{padding:12px}
+    .history-list{max-height:420px}
+  }
+</style></head>
+<body>
+<header>
+  <div class="logo-box">
+    <div class="logo">AT</div>
+    <div>AmeerTech NIN Generator</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</header><div class="container">  <!-- History card -->  <div class="card" id="historyCard" aria-live="polite">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="flex:1">
+        <div class="history-header" id="historyHeader">
+          <div>
+            <h2 style="margin:0">Tnx History</h2>
+            <div class="tx-date" style="margin-top:4px">Tap to expand and view wallet & generate transactions</div>
+          </div><div style="display:flex;align-items:center;gap:10px">
+        <div class="history-controls">
+          <button class="small-btn" id="refreshHistory" title="Refresh history">Refresh</button>
+          <div id="historyToggleArrow" style="font-weight:800">▼</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters removed (per request) -->
+  </div>
+</div>
+
+<div id="historyContent" class="history-list" style="display:none; margin-top:14px;">
+  <div id="historyLoader" class="empty-note">Loading transactions…</div>
+  <div id="historyList" style="display:none"></div>
+</div>
+
+  </div>  <div class="card">
+    <h2>Welcome, <span id="username">User</span> 👋</h2>
+    <div class="balance-box">
+      <div>
+        <p>Available Balance:</p>
+        <div class="balance" id="balance">₦0</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" onclick="goDeposit()">+ Add Fund</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing NIN Generate card -->
+  <div class="card">
+    <h2>Generate Your NIN Plastic</h2>
+    <p>Generate your NIN Plastic by filling your information with just ₦200 
+    and instantly download your slip in PNG or PDF.</p>
+    <button class="btn btn-primary" onclick="goToNi()">Generate NIN→</button>
+  </div>
+
+  <!-- NEW: Letterhead generator card (added as requested) -->
+  <div class="card">
+    <h2>Generate Letterhead</h2>
+    <p>Create a clean A4 letterhead with your company details and logo. Cost: ₦200 — generated letterhead can be downloaded as PNG/PDF (deducted from wallet).</p>
+    <button class="btn btn-primary" onclick="goToLetterhead()">Get Letterhead →</button>
+  </div>
+
+  <div class="slide">
+    <img src="slide1.jpg" class="active" alt="NIN Sample 1">
+    <img src="slide2.jpg" alt="NIN Sample 2">
+  </div>  <div class="support">
+    📞 Support: <br>
+    <a href="https://wa.me/2348145415083" target="_blank">08145415083 (WhatsApp)</a>
+  </div></div><footer>
+  © 2025 AmeerTech. All Rights Reserved.
+</footer><script type="module">
+  // --- firebase imports (auth + database) ---
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, get, child, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
+    authDomain: "ameernin-ba310.firebaseapp.com",
+    databaseURL: "https://ameernin-ba310-default-rtdb.firebaseio.com",
+    projectId: "ameernin-ba310",
+    storageBucket: "ameernin-ba310.appspot.com",
+    messagingSenderId: "522206845073",
+    appId: "1:522206845073:web:3c85714bd7eda6c1048730",
+    measurementId: "G-B0CNYEYBZ8"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  // uid will be set when auth state resolves
+  let uid = null;
+
+  // when auth state changes — keep behavior: redirect to auth.html if signed out
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      uid = user.uid;
+      // keep compatibility with other pages that still read localStorage
+      localStorage.setItem('currentUserId', uid);
+      // load user profile and UI
+      await checkAndLoadUser();
+    } else {
+      uid = null;
+      localStorage.removeItem('currentUserId');
+      // redirect to auth page
+      window.location.href = 'auth.html';
+    }
+  });
+
+  async function checkAndLoadUser(){
+    // same behavior as original but using auth uid
+    if(!uid){
+      window.location.href = 'auth.html';
+      return;
+    }
+    try{
+      const snap = await get(child(ref(db), `users/${uid}`));
+      if(!snap.exists()){
+        localStorage.clear();
+        window.location.href = 'auth.html';
+        return;
+      }
+      const user = snap.val();
+      if(user.status === 'blocked' || user.blocked === true){
+        try{ await update(ref(db, `users/${uid}`), { status: 'blocked' }); }catch(e){}
+        localStorage.clear();
+        document.body.innerHTML = `
+          <div class="block-overlay" role="alert">
+            <div class="block-box">
+              <h1>🚫 Your account was blocked</h1>
+              <p>Your account has been blocked. Contact support if you think this is a mistake:</p>
+              <p><a href="https://wa.me/2348145415083" target="_blank">wa.me/2348145415083</a></p>
+              <p style="margin-top:12px;color:#6b7280">Powered by: Atech ICT team</p>
+              <a class="block-btn" href="auth.html">Return to login</a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      document.getElementById("username").textContent = user.name || 'User';
+      document.getElementById("balance").textContent = "₦" + (user.balance || 0);
+      localStorage.setItem('balance', user.balance || 0);
+    }catch(err){
+      console.error(err);
+      localStorage.clear();
+      window.location.href = 'auth.html';
+    }
+  }
+
+  // slide show
+  let slideIndex=0;
+  const slides=document.querySelectorAll('.slide img');
+  setInterval(()=>{
+    slides.forEach((img,i)=>img.classList.toggle('active', i===slideIndex));
+    slideIndex=(slideIndex+1)%slides.length;
+  },5000);
+
+  // navigation helpers
+  window.goToNi=function(){ window.location.href="ni.html"; }
+  window.goDeposit=function(){ window.location.href="deposit.html"; }
+  // NEW helper to go to letterhead generator
+  window.goToLetterhead=function(){ window.location.href="letterhead.html"; }
+
+  // logout now uses Firebase Auth signOut and clears localStorage
+  window.logout=async function(){
+    try{
+      await signOut(auth);
+    }catch(e){
+      console.warn("Sign out error:", e);
+    } finally {
+      localStorage.removeItem("currentUserId");
+      localStorage.removeItem("balance");
+      window.location.href="auth.html";
+    }
+  }
+
+  // --- history UI wiring (unchanged behavior) ---
+  const historyHeader=document.getElementById('historyHeader');
+  const historyContent=document.getElementById('historyContent');
+  const historyListEl=document.getElementById('historyList');
+  const historyLoader=document.getElementById('historyLoader');
+  const historyToggleArrow=document.getElementById('historyToggleArrow');
+  const refreshBtn=document.getElementById('refreshHistory');
+
+  let historyVisible=false;
+  let lastTxArray = []; // persist loaded txs for rendering
+  let historyLoadedOnce = false;
+
+  historyHeader.addEventListener('click',toggleHistory);
+  refreshBtn.addEventListener('click',e=>{e.stopPropagation(); loadHistory();});
+
+  function toggleHistory(){
+    historyVisible=!historyVisible;
+    historyContent.style.display=historyVisible?'block':'none';
+    historyToggleArrow.textContent=historyVisible?'▲':'▼';
+    if(historyVisible && !historyLoadedOnce) loadHistory();
+  }
+
+  // candidate paths builder (use current uid)
+  function getCandidatePaths(u){
+    if(!u) return [];
+    return [
+      `users/${u}/transactions`,
+      `transactions/${u}`,
+      `deposits/${u}`,
+      `users/${u}/history`,
+      `history/${u}`,
+      `users/${u}/generates`,
+      `generates/${u}`,
+      `payments/${u}`,
+      `charges/${u}`
+    ];
+  }
+
+  function normalizeStatus(raw){
+    if(!raw && raw!==0) return '';
+    const s = String(raw).toLowerCase();
+    if(/approve|success|ok|completed|paid/.test(s)) return 'approved';
+    if(/declin|fail|failed|rejected/.test(s)) return 'declined';
+    if(/cancel|cancelle/.test(s)) return 'cancelled';
+    if(/process|pending|in_progress|submitted|waiting/.test(s)) return 'processing';
+    if(/insufficient|insuff|funds|balance/.test(s)) return 'insufficient';
+    if(/debited|deducted/.test(s)) return 'debited';
+    return s;
+  }
+
+  function extractReason(tx){
+    return tx.reason || tx.statusReason || tx.message || tx.msg || tx.error || tx.note || tx.description || tx.desc || tx.failureReason || '';
+  }
+
+  // ---------- loadHistory (uses current auth uid) ----------
+  async function loadHistory(){
+    if(!uid){
+      historyLoader.textContent = 'Not signed in.';
+      return;
+    }
+
+    // preserve UI behaviour
+    if(historyLoader) historyLoader.style.display='block';
+    if(historyListEl) historyListEl.style.display='none';
+    if(historyListEl) historyListEl.innerHTML='';
+    lastTxArray = [];
+
+    try{
+      const candidatePaths = getCandidatePaths(uid);
+      const results = await Promise.all(candidatePaths.map(p => 
+        get(child(ref(db), p)).then(snap => ({ path: p, snap })).catch(err => ({ path: p, error: err }))
+      ));
+
+      // gather all tx objects
+      const allTx = [];
+      results.forEach(r => {
+        if(r.snap && r.snap.exists()){
+          const data = r.snap.val();
+          if(Array.isArray(data)){
+            data.forEach((t,i) => { if(t) allTx.push({...t, _src: r.path, _key: String(i)}); });
+          } else if(typeof data === 'object'){
+            Object.entries(data).forEach(([k,v]) => { if(v) allTx.push({...v, _src: r.path, _key: k}); });
+          }
+        }
+      });
+
+      if(allTx.length === 0){
+        if(historyLoader) historyLoader.textContent = 'No transactions yet.';
+        historyLoadedOnce = true;
+        return;
+      }
+
+      // helper: safe parse amount -> number with simple cleanup
+      const parseAmount = (x) => {
+        if(x == null) return 0;
+        try{
+          const s = String(x).replace(/[^0-9.\-]/g, '');
+          const n = Number(s);
+          return isNaN(n) ? 0 : n;
+        }catch(e){ return 0; }
+      };
+
+      const parseTsMs = (raw) => {
+        if(raw == null) return null;
+        const n = Number(raw);
+        if(!isNaN(n)){
+          if(Math.abs(n) < 1e12) return Math.floor(n * 1000);
+          return Math.floor(n);
+        }
+        const parsed = Date.parse(String(raw));
+        if(!isNaN(parsed)) return parsed;
+        return null;
+      };
+
+      const normReason = (s) => (String(s||'').replace(/\s+/g,' ').trim().toLowerCase().slice(0,60));
+
+      // ---------- DEDUPE & MERGE WITH STATUS-PRIORITY ----------
+      const txMap = new Map();
+
+      // status priority helper: lower index = higher priority
+      const STATUS_ORDER = ['approved','declined','processing','cancelled','insufficient','debited',''];
+      function betterStatus(a,b){
+        a = String(a||'').toLowerCase();
+        b = String(b||'').toLowerCase();
+        if(!a) return b || '';
+        if(!b) return a || '';
+        const ia = STATUS_ORDER.indexOf(a);
+        const ib = STATUS_ORDER.indexOf(b);
+        if(ia === -1 && ib === -1) return a || b;
+        if(ia === -1) return b;
+        if(ib === -1) return a;
+        return ia <= ib ? a : b; // pick the one with higher priority
+      }
+
+      allTx.forEach(tx => {
+        const amount = parseAmount(tx.amount ?? tx.value ?? tx.amountPaid ?? tx.amt ?? tx._amount);
+        const tsRaw = tx.timestamp ?? tx.time ?? tx.createdAt ?? tx.timeMs ?? tx._ts ?? tx.date ?? tx.created_at ?? tx.created;
+        let tsMs = parseTsMs(tsRaw);
+        if(tsMs === null && tx.meta && (tx.meta.time || tx.meta.timestamp)) tsMs = parseTsMs(tx.meta.time ?? tx.meta.timestamp);
+
+        const canonicalId = tx.id || tx.txId || tx.transactionId || tx.ref || tx._id || tx._key || tx.key || tx.txRef || tx.transaction_ref || tx.refId || null;
+        const typeRaw = (tx.type || tx.action || tx.kind || '').toString().toLowerCase();
+        const reasonRaw = extractReason(tx) || tx.note || tx.description || tx.action || '';
+        const reasonN = normReason(reasonRaw);
+        const amtStr = Number.isFinite(amount) ? Number(amount).toFixed(2) : '0.00';
+        const typeStr = typeRaw.replace(/\s+/g,' ').trim().slice(0,30);
+
+        // use 10s bucket to be forgiving for small ts differences
+        const timeBucket = tsMs ? Math.round(tsMs / 10000) : 'no-ts';
+
+        // prefer canonical id as key, otherwise composite key
+        const key = (canonicalId ? `id:${String(canonicalId)}` : `amt:${amtStr}|t:${timeBucket}|type:${typeStr}|r:${reasonN}`);
+
+        const newNorm = normalizeStatus(tx.status ?? tx.result ?? tx.state ?? tx.statusText ?? tx.stateText ?? '');
+
+        if(txMap.has(key)){
+          // merge into existing (keep latest timestamp & prefer canonicalId when present)
+          const existing = txMap.get(key);
+
+          // track source paths for debugging
+          existing._srcPaths = Array.from(new Set([...(existing._srcPaths||[]), tx._src || tx._srcPath || 'unknown']));
+
+          if(!existing._canonicalId && canonicalId) existing._canonicalId = canonicalId;
+
+          // prefer the entry with the newer timestamp for displayed time, but still allow status priority to win
+          const existingTs = existing._ts || 0;
+          const thisTs = tsMs || 0;
+          existing._ts = Math.max(existingTs, thisTs) || Date.now();
+
+          // pick status by priority (so APPROVED will override PROCESSING even if timestamps are tricky)
+          existing._normalizedStatus = betterStatus(existing._normalizedStatus, newNorm);
+
+          // copy any missing fields from tx into existing (but don't blindly overwrite)
+          Object.keys(tx).forEach(k => {
+            if((existing[k] === undefined || existing[k] === null || existing[k] === '') && tx[k] !== undefined) {
+              existing[k] = tx[k];
+            }
+          });
+
+          // ensure amount, reason set
+          existing._amount = existing._amount || amount;
+          existing._reason = existing._reason || reasonRaw;
+
+          existing._merged = (existing._merged||0) + 1;
+          txMap.set(key, existing);
+        } else {
+          // new entry
+          const normalizedStatus = newNorm;
+          const kind = typeRaw.includes('credit') ? 'credit' :
+                       (typeRaw.includes('debit') ? 'debit' :
+                       (typeRaw.includes('generate') || typeRaw.includes('letterhead') || typeRaw.includes('nin') ? 'generate' :
+                       (tx._src && tx._src.includes('deposit') ? 'credit' : 'unknown')));
+          const base = {
+            ...tx,
+            _amount: amount,
+            _ts: tsMs || Date.now(),
+            _srcPath: tx._src || tx._srcPath || '',
+            _keyId: tx._key ?? (tx.key ?? ''),
+            _normalizedStatus: normalizedStatus,
+            _reason: reasonRaw,
+            _kind: kind,
+            _canonicalId: canonicalId,
+            _srcPaths: [tx._src || tx._srcPath || 'unknown']
+          };
+          txMap.set(key, base);
+        }
+      });
+
+      // convert map -> array (only latest per key remains)
+      const txArr = Array.from(txMap.values());
+      // ensure if any merged group contains an APPROVED status, that is reflected in the object
+      // (already handled by betterStatus during merge)
+      txArr.sort((a,b)=> (b._ts || 0) - (a._ts || 0));
+      lastTxArray = txArr;
+      historyLoadedOnce = true;
+      if(historyLoader) historyLoader.style.display='none';
+      if(historyListEl) historyListEl.style.display='block';
+      renderHistory(lastTxArray);
+      // ---------- end replacement ----------
+
+    }catch(e){
+      console.error('loadHistory error', e);
+      if(historyLoader) historyLoader.textContent='Failed to load transactions.';
+    }
+  }
+
+  // ---------- renderHistory (modified to include debit ₦200 generate entries) ----------
+  function renderHistory(txArray){
+    historyListEl.innerHTML='';
+    if(!txArray || txArray.length===0){
+      const empty = document.createElement('div');
+      empty.className='empty-note';
+      empty.textContent='No transactions to show.';
+      historyListEl.appendChild(empty);
+      return;
+    }
+
+    // statuses to show normally
+    const VISIBLE_STATUSES = ['approved','declined','cancelled','debited'];
+
+    txArray.forEach(tx=>{
+      const status = (tx._normalizedStatus || '').toString().toLowerCase();
+
+      // show entry if:
+      //  - status is in the visible list (approved/declined/cancelled/debited), OR
+      //  - it's a generate transaction equal to ₦200 (letterhead generate)
+      const isGenerate200 = (tx._kind === 'generate' || (String(tx.type||'').toLowerCase().includes('generate') || String(tx._srcPath||'').toLowerCase().includes('generates') || String(tx._srcPath||'').toLowerCase().includes('generates'))) && Number(tx._amount) === 200;
+
+      if(!(VISIBLE_STATUSES.includes(status) || isGenerate200)){
+        // skip others (processing / pending etc) unless generate200
+        return;
+      }
+
+      // still skip obvious deposit credits in list (we don't want deposit entries here)
+      if(tx._kind === 'credit' && tx._srcPath && (
+         tx._srcPath.toLowerCase().includes('deposit') || tx._srcPath.toLowerCase().includes('credit')
+      )){
+        return;
+      }
+
+      const item=document.createElement('div');
+      item.className='tx-item';
+
+      const left=document.createElement('div');
+      left.className='tx-left';
+
+      const title=document.createElement('div');
+      const typeLabel = tx._kind === 'credit' ? 'CREDIT' : (tx._kind === 'debit' ? 'DEBIT' : (tx._kind === 'generate' ? 'GENERATE' : (tx.type||tx.action||'TX').toString().toUpperCase()));
+      const amountFmt = '₦' + (Number(tx._amount||0)).toLocaleString();
+      const spanType = document.createElement('span');
+      spanType.className = 'tx-type ' + (tx._kind === 'credit' ? 'credit' : 'debit');
+      spanType.textContent = typeLabel;
+
+      const amtSpan = document.createElement('span');
+      amtSpan.className = 'tx-amount';
+      amtSpan.style.marginLeft = '10px';
+      amtSpan.textContent = amountFmt;
+
+      title.appendChild(spanType);
+      title.appendChild(amtSpan);
+
+      const statusKey = tx._normalizedStatus || '';
+      if(statusKey){
+        const sb = document.createElement('span');
+        sb.className = 'status-badge ' + statusKey;
+        sb.textContent = (statusKey||'').toUpperCase();
+        title.appendChild(sb);
+      }
+
+      const desc=document.createElement('div');
+      desc.className='tx-note';
+      const reason = tx._reason || (tx.note || tx.desc || tx.description || tx.action || '');
+      let genExtra = '';
+      if(tx.nin || tx.ninNo){
+        const ninTxt = tx.nin || tx.ninNo || '';
+        const nameParts = [tx.firstName, tx.givenNames, tx.name, tx.lastName, tx.surname].filter(Boolean).join(' ');
+        genExtra = `NIN: ${ninTxt} ${nameParts? ' | Name: ' + nameParts : ''}`;
+      } else if(tx._kind === 'generate'){
+        // Helpful extra for generate entries (if available)
+        const comp = tx.company || tx.companyName || tx.metaCompany || '';
+        if(comp) genExtra = `Company: ${comp}`;
+      }
+      desc.textContent = reason || (genExtra ? genExtra : `source: ${tx._srcPath || 'unknown'}`);
+
+      if(reason && genExtra){
+        const extra = document.createElement('div');
+        extra.className = 'tx-reason';
+        extra.textContent = genExtra;
+        left.appendChild(title);
+        left.appendChild(desc);
+        left.appendChild(extra);
+      } else {
+        left.appendChild(title);
+        left.appendChild(desc);
+      }
+
+      const right=document.createElement('div');
+      right.className='tx-date';
+      let dateText='';
+      if(tx._ts){
+        const d=new Date(Number(tx._ts));
+        dateText = !isNaN(d) ? d.toLocaleString() : String(tx._ts);
+      } else {
+        dateText = tx._keyId ? String(tx._keyId) : '';
+      }
+      right.textContent = dateText;
+
+      item.appendChild(left);
+      item.appendChild(right);
+      historyListEl.appendChild(item);
+    });
+
+    // if nothing was appended, show a friendly empty note
+    if(historyListEl.children.length === 0){
+      const empty = document.createElement('div');
+      empty.className='empty-note';
+      empty.textContent='No approved/declined/cancelled/debited transactions to show.';
+      historyListEl.appendChild(empty);
+    }
+  }
+
+  // auto-open history if ?history=1
+  if(new URLSearchParams(window.location.search).get('history')==='1'){
+    toggleHistory();
+  }
+
+</script></body>
+</html>
