@@ -1,0 +1,10 @@
+{
+  "name": "ameerpay",
+  "version": "1.0.0",
+  "description": "AmeerPay Netlify + Paystack example",
+  "scripts": {},
+  "dependencies": {
+    "firebase-admin": "^11.10.0",
+    "node-fetch": "^2.6.7"
+  }
+}
