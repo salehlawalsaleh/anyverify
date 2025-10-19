@@ -1,68 +1,102 @@
 // netlify/functions/init-pay.js
 const fetch = require('node-fetch');
-const admin = require('firebase-admin');
 
-exports.handler = async (event, context) => {
-  console.log('DEBUG: init-pay received request');
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+exports.handler = async (event) => {
+  // Allow CORS + preflight
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+  };
+
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers
+    };
+  }
 
   try {
-    const body = JSON.parse(event.body || '{}');
-    const { uid, email, amount } = body;
-    if (!uid || !amount) return { statusCode: 400, body: JSON.stringify({ error: 'uid and amount required' }) };
-
-    // Init firebase-admin if not initialized
-    if (!admin.apps.length) {
-      const svc = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      admin.initializeApp({
-        credential: admin.credential.cert(svc),
-        databaseURL: process.env.FIREBASE_DATABASE_URL
-      });
+    // Ensure body exists
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Missing request body" })
+      };
     }
-    const db = admin.database();
 
-    // Create a unique reference (Paystack also returns one, but we set ours to keep match)
-    const reference = `REF_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+    // Parse body safely
+    let body;
+    try {
+      body = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+    } catch (err) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Invalid JSON in request body", details: err.message })
+      };
+    }
 
-    // Initialize Paystack transaction
-    const initRes = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
+    const { uid, email, amount } = body || {};
+
+    if (!email || !amount || !uid) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Missing required fields: uid, email, amount" })
+      };
+    }
+
+    // Read Paystack secret from env
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
+    if (!PAYSTACK_SECRET) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: "Server misconfigured: PAYSTACK_SECRET not set" })
+      };
+    }
+
+    const initializeUrl = "https://api.paystack.co/transaction/initialize";
+    const amountKobo = Math.round(Number(amount) * 100);
+
+    const initRes = await fetch(initializeUrl, {
+      method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${PAYSTACK_SECRET}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email: email || 'no-reply@local',
-        amount: Math.round(amount * 100),
-        reference,
-        metadata: { uid }
+        email,
+        amount: amountKobo,
+        metadata: { uid },
       })
     });
 
-    const initData = await initRes.json();
+    const initJson = await initRes.json();
+
     if (!initRes.ok) {
-      console.error('Paystack init error', initData);
-      return { statusCode: 500, body: JSON.stringify({ error: 'Paystack initialization failed', details: initData }) };
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: "Paystack initialize failed", details: initJson })
+      };
     }
 
-    // Save a deposit record with status 'initiated'
-    const depRef = db.ref(`deposits/${uid}`).push();
-    const depositObj = {
-      amount,
-      reference,
-      status: 'initiated',
-      timestamp: Date.now(),
-      updatedAt: Date.now(),
-      payment_init: initData.data || {}
-    };
-    await depRef.set(depositObj);
+    // optionally: here you could write an "initiated" record to your DB.
+    // For now, we just return initJson to client so it can open Paystack popup.
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, data: initData.data, depositKey: depRef.key })
+      headers,
+      body: JSON.stringify({ success: true, data: initJson.data })
     };
   } catch (err) {
-    console.error('init-pay error', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "Server error", details: err.message })
+    };
   }
 };
