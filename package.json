@@ -1,10 +1,11 @@
 {
-  "name": "ameerpay",
+  "name": "ameerpay-netlify-fns",
   "version": "1.0.0",
-  "description": "AmeerPay Netlify + Paystack example",
-  "scripts": {},
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
-    "firebase-admin": "^11.10.0",
-    "node-fetch": "^2.6.7"
+    "firebase-admin": "^11.10.0"
   }
 }
