@@ -1,41 +1,284 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deposit - AnyVerified</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Deposit — AnyVerified</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root{
+    --bg:#f8fafc; --card:#fff; --muted:#64748b; --accent:#0ea5a0; --danger:#ef4444;
+    --success:#16a34a; --glass: rgba(255,255,255,0.6);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+  .wrap{max-width:860px;margin:18px auto;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+  h1{font-size:18px;margin:0}
+  .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(2,6,23,0.06);margin-bottom:14px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .col{flex:1;min-width:240px}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:8px}
+  input[type=number]{width:100%;padding:12px;border:1px solid #e6eef0;border-radius:8px;font-size:16px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-ghost{background:transparent;border:1px solid #e6eef0;color:var(--muted)}
+  .balance{font-size:20px;font-weight:800;color:#0f766e}
+  .small{font-size:13px;color:var(--muted)}
+  .history{display:flex;flex-direction:column;gap:8px}
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;border:1px solid #eef3f5;background:linear-gradient(180deg,var(--glass),#fff)}
+  .tx-left{display:flex;flex-direction:column;gap:6px}
+  .tx-amt{font-weight:800}
+  .status-badge{padding:6px 8px;border-radius:999px;font-weight:800;font-size:12px}
+  .status-processing{background:rgba(249,115,22,0.08);color:#b45309}
+  .status-approved{background:rgba(16,185,129,0.08);color:#065f46}
+  .status-cancelled{background:rgba(239,68,68,0.08);color:#7f1d1d}
+  .note{font-size:13px;color:var(--muted)}
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  footer{margin-top:18px;color:var(--muted);font-size:13px}
+  @media (max-width:560px){
+    .row{flex-direction:column}
+  }
+</style>
 </head>
 <body>
-  <h2>Add Funds</h2>
-  <form id="depositForm">
-    <input type="number" id="amount" placeholder="Amount" required />
-    <button type="submit">Pay with Paystack</button>
-  </form>
-  <div id="status"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">AV</div>
+      <div>
+        <h1>AnyVerified — Add Funds</h1>
+        <div class="small">Secure payments powered by Paystack</div>
+      </div>
+    </div>
+    <div class="center">
+      <div class="small">Balance</div>
+      <div id="balance" class="balance">—</div>
+    </div>
+  </header>
 
-  <script>
-    const PAYSTACK_PUBLIC = "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11";
-    const form = document.getElementById("depositForm");
-    const statusDiv = document.getElementById("status");
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <div class="col">
+        <label for="amount">Amount (₦)</label>
+        <input id="amount" type="number" min="210" placeholder="Enter amount (minimum ₦210)">
+        <div class="note small">Minimum deposit ₦210. You can have up to <strong>3 active</strong> pending deposits.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;justify-content:center">
+        <button id="payBtn" class="btn btn-primary">Pay with Paystack</button>
+        <button id="refreshBtn" class="btn btn-ghost">Refresh</button>
+      </div>
+    </div>
+    <div id="msg" class="small muted" style="margin-top:10px"></div>
+  </div>
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const amount = parseFloat(document.getElementById("amount").value);
-      const uid = localStorage.getItem("uid");
-      statusDiv.textContent = "Initializing payment...";
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <div class="small">Recent Deposits</div>
+        <div class="note">Showing latest 3 deposits</div>
+      </div>
+      <div class="small muted">Auto-cancel after 30 minutes</div>
+    </div>
 
-      const res = await fetch("/.netlify/functions/initializePayment", {
-        method: "POST",
-        body: JSON.stringify({ uid, amount })
-      });
+    <div id="history" class="history">
+      <div id="historyLoader" class="tx center"><div class="small muted">Loading...</div></div>
+    </div>
+  </div>
 
-      const data = await res.json();
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
-      } else {
-        statusDiv.textContent = data.error || "Error starting payment";
-      }
-    });
-  </script>
+  <footer class="center">
+    <div class="small">Need help? Contact support.</div>
+  </footer>
+</div>
+
+<script type="module">
+/* ====== CONFIG - adjust if needed ====== */
+const PAYSTACK_PUBLIC = "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11";
+const SITE_URL = "https://anyverified.netlify.app";
+
+/* ====== Firebase client init (only for Auth) ======
+   Leave databaseURL out. Replace apiKey/authDomain/projectId etc
+   with your existing firebase client config (safe).
+*/
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
+  authDomain: "ameernin-ba310.firebaseapp.com",
+  projectId: "ameernin-ba310",
+  storageBucket: "ameernin-ba310.appspot.com",
+  messagingSenderId: "522206845073",
+  appId: "1:522206845073:web:3c85714bd7eda6c1048730"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* ====== Helpers ====== */
+const $ = id => document.getElementById(id);
+const payBtn = $("payBtn");
+const refreshBtn = $("refreshBtn");
+const amountEl = $("amount");
+const msgEl = $("msg");
+const historyEl = $("history");
+const balanceEl = $("balance");
+const historyLoader = $("historyLoader");
+
+let currentUid = null;
+let currentEmail = null;
+let depositsCache = {}; // keyed by ref
+
+/* fetch wrappers */
+async function apiGet(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error('Network error: ' + res.status);
+  return res.json();
+}
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e){ throw new Error(text || res.status); }
+  }
+  return res.json();
+}
+
+/* ====== UI Render ====== */
+function renderHistory(list) {
+  historyEl.innerHTML = "";
+  if (!list.length) {
+    historyEl.innerHTML = '<div class="tx center"><div class="small muted">No deposits yet.</div></div>';
+    return;
+  }
+  list.slice(0,3).forEach(d => {
+    const status = (d.status || "").toLowerCase();
+    const statusClass = status === "approved" ? "status-approved" : status === "cancelled" ? "status-cancelled" : "status-processing";
+    const tx = document.createElement("div");
+    tx.className = "tx";
+    const left = document.createElement("div"); left.className = "tx-left";
+    const amt = document.createElement("div"); amt.className = "tx-amt"; amt.textContent = "₦" + Number(d.amount||0).toLocaleString();
+    const note = document.createElement("div"); note.className = "note"; note.textContent = d.reference ? `Ref: ${d.reference}` : (d.note || "Deposit");
+    left.appendChild(amt); left.appendChild(note);
+    const right = document.createElement("div");
+    const badge = document.createElement("div"); badge.className = "status-badge " + statusClass; badge.textContent = (status||"—").toUpperCase();
+    const time = document.createElement("div"); time.className = "small muted"; time.style.marginTop="6px";
+    const ts = d.updatedAt || d.createdAt || d.timestamp || Date.now();
+    time.textContent = new Date(Number(ts)).toLocaleString();
+    right.appendChild(badge); right.appendChild(time);
+    tx.appendChild(left); tx.appendChild(right);
+    historyEl.appendChild(tx);
+  });
+}
+
+/* ====== Load user + deposits ====== */
+async function loadAll() {
+  if (!currentUid) return;
+  historyLoader.style.display = "flex";
+  try {
+    // user info
+    const userRes = await apiGet(`/.netlify/functions/getUser?uid=${encodeURIComponent(currentUid)}`);
+    const user = userRes.user || {};
+    balanceEl.textContent = "₦" + ((user.balance || 0).toLocaleString ? user.balance.toLocaleString() : Number(user.balance||0).toLocaleString());
+    // deposits
+    const depRes = await apiGet(`/.netlify/functions/getDeposits?uid=${encodeURIComponent(currentUid)}`);
+    const depositsObj = depRes.deposits || {};
+    // convert to array sorted newest first
+    const arr = Object.keys(depositsObj).map(k => ({ reference:k, ...depositsObj[k] }));
+    arr.sort((a,b) => (b.updatedAt||b.createdAt||b.timestamp||0) - (a.updatedAt||a.createdAt||a.timestamp||0));
+    depositsCache = {};
+    arr.forEach(d => { depositsCache[d.reference || d.id] = d; });
+    renderHistory(arr);
+    // check active
+    const active = arr.filter(d => ["submitted","processing"].includes((d.status||"").toLowerCase()));
+    if (active.length >= 3) {
+      payBtn.disabled = true;
+      payBtn.classList.remove("btn-primary");
+      payBtn.classList.add("btn-ghost");
+      msgEl.textContent = `You have ${active.length} active deposits. Please wait until one completes or is cancelled.`;
+    } else {
+      payBtn.disabled = false;
+      payBtn.classList.remove("btn-ghost");
+      payBtn.classList.add("btn-primary");
+      msgEl.textContent = "";
+    }
+  } catch (err) {
+    console.error("loadAll error", err);
+    msgEl.textContent = "Failed to load deposits. Try refresh.";
+  } finally {
+    historyLoader.style.display = "none";
+  }
+}
+
+/* ====== Initialize payment ====== */
+async function startPayment(amount) {
+  if (!currentUid) { alert("Please sign in first."); return; }
+  try {
+    payBtn.disabled = true;
+    payBtn.textContent = "Initializing...";
+    const email = currentEmail || `${currentUid}@anyverified.app`;
+    const res = await apiPost(`/.netlify/functions/initializePayment`, { uid: currentUid, amount, email });
+    // server might return either { authorization_url } or nested data.data.authorization_url
+    const authUrl = (res.authorization_url) || (res.data && res.data.authorization_url) || (res.data && res.data.authorization_url);
+    if (!authUrl) {
+      console.error("initPayment no auth url", res);
+      alert(res.error || "Failed to start payment");
+      payBtn.disabled = false;
+      payBtn.textContent = "Pay with Paystack";
+      return;
+    }
+    // redirect to paystack checkout
+    window.location.href = authUrl;
+  } catch (err) {
+    console.error("startPayment error", err);
+    alert(err.message || "Failed to start payment");
+    payBtn.disabled = false;
+    payBtn.textContent = "Pay with Paystack";
+  }
+}
+
+/* ====== Events ====== */
+payBtn.addEventListener("click", (ev) => {
+  ev.preventDefault();
+  const amount = Number(amountEl.value);
+  if (!amount || amount < 210) { alert("Minimum deposit is ₦210"); return; }
+  startPayment(amount);
+});
+refreshBtn.addEventListener("click", () => loadAll());
+
+/* ====== Auth state & init ====== */
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUid = user.uid;
+    currentEmail = user.email || null;
+    localStorage.setItem("currentUserId", currentUid);
+    loadAll();
+  } else {
+    // not signed in -> redirect to auth page (adjust your auth page)
+    msgEl.textContent = "Not signed in. Redirecting to sign in...";
+    setTimeout(()=> window.location.href = "/auth.html", 900);
+  }
+});
+
+/* ====== If Paystack redirected back with reference, auto-refresh ====== */
+(function checkUrlRef(){
+  const params = new URLSearchParams(location.search);
+  const ref = params.get("reference") || params.get("ref");
+  if (ref) {
+    // optionally show a tiny message then reload server state
+    msgEl.textContent = "Verifying payment...";
+    // call verify endpoint as GET will redirect back (server handles verify)
+    fetch(`/.netlify/functions/verifyPayment?reference=${encodeURIComponent(ref)}`)
+      .then(()=> { setTimeout(()=> { location.search = ""; loadAll(); }, 800); })
+      .catch(()=> { setTimeout(()=> { location.search = ""; loadAll(); }, 800); });
+  }
+})();
+</script>
 </body>
 </html>
