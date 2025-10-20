@@ -1,6 +1,6 @@
-[build]
-  functions = "netlify/functions"
-  publish = "."
+[functions]
+  directory = "netlify/functions"
 
-[dev]
-  functions = "netlify/functions"
+[[scheduled]]
+  name = "autoCancel"
+  cron = "*/15 * * * *"
