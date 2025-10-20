@@ -1,9 +1,0 @@
-{
-  "name": "anyverify-netlify-ready",
-  "version": "1.0.0",
-  "description": "Prepared repo with Netlify Functions for Paystack + Firebase Realtime DB",
-  "scripts": {},
-  "dependencies": {
-    "firebase-admin": "^11.10.0"
-  }
-}
