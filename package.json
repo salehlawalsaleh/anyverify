@@ -1,17 +1,8 @@
 {
   "name": "anyverify-netlify-ready",
   "version": "1.0.0",
-  "description": "Prepared repo with Netlify Functions for Paystack + Firebase Realtime DB",
-  "scripts": {
-    "build": "echo 'No build step required'"
-  },
   "dependencies": {
     "firebase-admin": "^11.10.0",
-    "node-fetch": "^3.3.2",
-    "dotenv": "^16.3.1",
-    "axios": "^1.6.0"
-  },
-  "engines": {
-    "node": ">=18"
+    "node-fetch": "^3.3.2"
   }
 }
