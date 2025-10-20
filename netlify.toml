@@ -1,6 +1,10 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
 [functions]
-  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[scheduled]]
-  name = "autoCancel"
-  cron = "*/15 * * * *"
+  cron = "*/10 * * * *"
+  path = "/.netlify/functions/autoCancelDeposits"
