@@ -1,10 +1,8 @@
 {
-  "name": "ameerpay-netlify-fns",
+  "name": "anyverify-netlify-ready",
   "version": "1.0.0",
-  "private": true,
-  "engines": {
-    "node": "18.x"
-  },
+  "description": "Prepared repo with Netlify Functions for Paystack + Firebase Realtime DB",
+  "scripts": {},
   "dependencies": {
     "firebase-admin": "^11.10.0"
   }
