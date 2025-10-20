@@ -1,41 +1,54 @@
-import axios from "axios";
-import { db } from "./config.js";
+import fetch from "node-fetch";
+import admin from "firebase-admin";
+
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
+}
+
+const db = admin.database();
 
 export async function handler(event) {
   try {
-    const body = event.body ? JSON.parse(event.body) : {};
-    const ref = body.reference || (event.queryStringParameters && event.queryStringParameters.reference);
+    const body = JSON.parse(event.body || "{}");
+    const { reference } = body;
 
-    if (!ref) return { statusCode: 400, body: "Missing reference" };
+    if (!reference) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Missing reference" }) };
+    }
 
-    // Verify Paystack transaction
-    const verify = await axios.get(`https://api.paystack.co/transaction/verify/${ref}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET}` }
+    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET}` },
     });
+    const verifyData = await verifyRes.json();
 
-    const data = verify.data.data;
-    const uid = data.customer.email.split("@")[0];
-    const userDepositRef = db.ref(`deposits/${uid}/${ref}`);
-
-    const status = data.status === "success" ? "approved" : "cancelled";
-    await userDepositRef.update({ status, verifiedAt: Date.now() });
-
-    if (status === "approved") {
-      const userBalanceRef = db.ref(`users/${uid}/balance`);
-      const snapshot = await userBalanceRef.once("value");
-      const oldBalance = snapshot.val() || 0;
-      await userBalanceRef.set(oldBalance + data.amount / 100);
+    if (!verifyData.status) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Verification failed" }) };
     }
 
-    if (event.httpMethod === "GET") {
-      return {
-        statusCode: 302,
-        headers: { Location: `/deposit.html?reference=${ref}` }
-      };
+    if (verifyData.data.status === "success") {
+      const depositsRef = db.ref("deposits");
+      const snapshot = await depositsRef
+        .orderByChild("reference")
+        .equalTo(reference)
+        .once("value");
+
+      snapshot.forEach((child) => {
+        child.ref.update({
+          status: "approved",
+          timestamp: Date.now(),
+          timeTxt: new Date().toLocaleTimeString(),
+          date: new Date().toISOString().split("T")[0],
+        });
+      });
     }
 
-    return { statusCode: 200, body: JSON.stringify({ status }) };
-  } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+    return { statusCode: 200, body: JSON.stringify({ success: true }) };
+  } catch (err) {
+    console.error("verify error:", err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 }
