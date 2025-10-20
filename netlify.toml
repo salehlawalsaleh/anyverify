@@ -1,10 +1,12 @@
 [build]
-  publish = "."
   functions = "netlify/functions"
+  command = "echo 'Backend-only Netlify Functions Build'"
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["firebase-admin"]
+  included_files = ["netlify/functions/**"]
 
 [[scheduled]]
   cron = "*/10 * * * *"
-  path = "/.netlify/functions/autoCancelDeposits"
+  path = "/.netlify/functions/autoCancel"
