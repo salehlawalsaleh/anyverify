@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AmeerTech Digital NIN plastic generator — Auth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --primary:#0EA47A;
+      --primary-dark:#0A7C5B;
+      --bg1:#0f172a;
+      --bg2:#111827;
+      --card:#0b1220cc;
+      --border:#1f2937;
+      --text:#E5E7EB;
+      --muted:#9CA3AF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 10% 10%, #0b3a2d 0%, transparent 60%),
+                  radial-gradient(1200px 600px at 90% 90%, #1e293b 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      display:flex;align-items:center;justify-content:center;padding:24px;
+    }
+    .wrap{width:100%;max-width:430px}
+    .brand{
+      display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:18px;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:12px;
+      background:linear-gradient(135deg, var(--primary), #20c997);
+      display:grid;place-items:center;font-weight:900;color:#00241a;box-shadow:0 8px 30px #0ea47a55;
+    }
+    .brand h1{margin:0;font-size:18px;letter-spacing:.2px;text-align:center;line-height:1.3}
+    .card{
+      background:var(--card); backdrop-filter: blur(10px);
+      border:1px solid var(--border); border-radius:16px; padding:22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    .title{margin:0 0 6px 0; font-size:18px; text-align:center; color:#d1fae5}
+    .subtitle{margin:0 0 18px 0; text-align:center; color:var(--muted); font-size:13px}
+    .btn{
+      width:100%; padding:12px 14px; border:none; border-radius:10px; font-weight:700;
+      background:var(--primary); color:#052016; cursor:pointer; transition:.2s; margin:6px 0;
+    }
+    .btn:hover{background:var(--primary-dark)}
+    .btn.ghost{
+      background:transparent; color:var(--text); border:1px solid var(--border);
+    }
+    .btn.ghost:hover{border-color:#2b3a55;background:#0b122044}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    .input{
+      width:100%; padding:12px 12px; border-radius:10px; border:1px solid var(--border);
+      outline:none; background:#0b1226; color:var(--text);
+    }
+    .input:focus{border-color:#2dd4bf; box-shadow:0 0 0 3px #2dd4bf22}
+    .muted-link{display:inline-block; color:#93c5fd; text-decoration:none; font-size:13px}
+    .muted-link:hover{text-decoration:underline}
+    .foot{margin-top:10px; text-align:center}
+    .sep{height:1px;background:var(--border); margin:16px 0}
+    .hidden{display:none}
+    /* Toast */
+    .toast{
+      position:fixed; right:20px; top:20px; z-index:50; display:none;
+      padding:14px 16px; border-radius:10px; color:white; font-weight:600;
+      box-shadow:0 8px 30px rgba(0,0,0,.3); max-width:85vw;
+    }
+    .toast.show{display:block; animation:slidein .25s ease, fadeout .5s ease 3s forwards}
+    .toast.success{background:linear-gradient(135deg, #16a34a, #22c55e)}
+    .toast.error{background:linear-gradient(135deg, #b91c1c, #ef4444)}
+    @keyframes slidein{from{transform:translateY(-10px); opacity:0} to{transform:translateY(0); opacity:1}}
+    @keyframes fadeout{to{opacity:0; transform:translateY(-6px)}}
+    .landing-title{text-align:center; font-size:20px; margin:6px 0 14px 0; color:#e2e8f0;}
+    .contact{display:block; text-align:center; margin-top:10px}
+    /* Spinner */
+    .spinner {
+      display: none;
+      border: 4px solid #ccc;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 1s linear infinite;
+      margin: 12px auto;
+    }
+    .spinner-text {
+      display: none;
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">AT</div>
+      <h1>AmeerTech Digital NIN plastic generator</h1>
+    </div>
+
+    <!-- LANDING -->
+    <div id="view-landing" class="card">
+      <p class="landing-title">Choose an option to continue</p>
+      <button class="btn" onclick="showView('register')">Register</button>
+      <button class="btn ghost" style="margin-top:10px" onclick="showView('login')">Login</button>
+      <div class="sep"></div>
+      <div class="contact">
+        <a class="muted-link" id="supportLink" href="https://wa.me/2348012345678?text=Hello%20AmeerTech%20support" target="_blank" rel="noopener">Contact support</a>
+      </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="view-register" class="card hidden">
+      <h2 class="title">Create account</h2>
+      <p class="subtitle">Fill your details to get started</p>
+      <label>Full name</label>
+      <input id="regName" class="input" type="text" placeholder="e.g. Ameer Tech" />
+      <label style="margin-top:10px">Email</label>
+      <input id="regEmail" class="input" type="email" placeholder="ameer@tech.com" />
+      <label style="margin-top:10px">Password</label>
+      <input id="regPassword" class="input" type="password" placeholder="••••••••" />
+      <button class="btn" onclick="register()">Register</button>
+      <div id="spinner-register" class="spinner"></div>
+      <p id="spinner-register-text" class="spinner-text">Please wait...</p>
+      <div class="foot">
+        <a class="muted-link" href="javascript:void(0)" onclick="showView('login')">Already have an account? Login</a>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="view-login" class="card hidden">
+      <h2 class="title">Welcome back</h2>
+      <p class="subtitle">Enter your credentials</p>
+      <label>Email</label>
+      <input id="loginEmail" class="input" type="email" placeholder="name@example.com" />
+      <label style="margin-top:10px">Password</label>
+      <input id="loginPassword" class="input" type="password" placeholder="••••••••" />
+      <button class="btn" onclick="login()">Login</button>
+      <div id="spinner-login" class="spinner"></div>
+      <p id="spinner-login-text" class="spinner-text">Please wait...</p>
+      <div class="foot">
+        <a class="muted-link" href="javascript:void(0)" onclick="showView('register')">New here? Create account</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase (module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      updateProfile,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      set,
+      get
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // === CONFIG ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyDc0bIipHU7N73mju33dNwSWmH3IeIYkog",
+      authDomain: "ameernin-ba310.firebaseapp.com",
+      databaseURL: "https://ameernin-ba310-default-rtdb.firebaseio.com",
+      projectId: "ameernin-ba310",
+      storageBucket: "ameernin-ba310.appspot.com",
+      messagingSenderId: "522206845073",
+      appId: "1:522206845073:web:3c85714bd7eda6c1048730",
+      measurementId: "G-B0CNYEYBZ8"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // Show/hide views (kept original)
+    window.showView = (v)=>{
+      ["view-landing","view-register","view-login"].forEach(id=>{
+        document.getElementById(id).classList.toggle('hidden', id !== `view-${v}`);
+      });
+    };
+
+    // redirect if already signed in (so users don't see login page)
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // ensure user's DB profile exists (if migrating)
+        try {
+          const snap = await get(ref(db, "users/" + user.uid));
+          const data = snap.exists() ? snap.val() : null;
+          // keep currentUserId in localStorage to keep other code working
+          localStorage.setItem("currentUserId", user.uid);
+          // if role present, redirect accordingly; else default to dashboard
+          const role = data && data.role ? data.role : "user";
+          // if on auth page, redirect
+          if (window.location.pathname.endsWith("auth.html") || window.location.pathname === "/" ) {
+            window.location.href = (role === "admin") ? "admin.html" : "dashboard.html";
+          }
+        } catch(e){
+          console.error("Failed reading user profile:", e);
+        }
+      } else {
+        // not signed in
+        localStorage.removeItem("currentUserId");
+      }
+    });
+
+    // initial view
+    showView('landing');
+
+    function showToast(msg,type="success"){
+      const t=document.getElementById('toast');
+      t.textContent=msg; t.className=`toast ${type} show`;
+      setTimeout(()=>{t.className='toast';},3500);
+    }
+    function validateEmail(e){return /\S+@\S+\.\S+/.test(e);}
+    function showSpinner(view){
+      const s = document.getElementById(`spinner-${view}`);
+      const txt = document.getElementById(`spinner-${view}-text`);
+      if(s) s.style.display="block";
+      if(txt) txt.style.display="block";
+    }
+    function hideSpinner(view){
+      const s = document.getElementById(`spinner-${view}`);
+      const txt = document.getElementById(`spinner-${view}-text`);
+      if(s) s.style.display="none";
+      if(txt) txt.style.display="none";
+    }
+
+    // === REGISTER (Firebase Auth) ===
+    window.register=async function(){
+      showSpinner("register");
+      const name=document.getElementById('regName').value.trim();
+      const email=document.getElementById('regEmail').value.trim().toLowerCase();
+      const pass=document.getElementById('regPassword').value.trim();
+
+      if(!name||!email||!pass){hideSpinner("register");showToast("All fields are required","error");return;}
+      if(!validateEmail(email)){hideSpinner("register");showToast("Invalid email address","error");return;}
+      if(pass.length<6){hideSpinner("register");showToast("Password must be at least 6 characters","error");return;}
+
+      try{
+        // create auth user
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        // set displayName on auth profile
+        try{ await updateProfile(cred.user, { displayName: name }); }catch(e){/* non-fatal */ }
+
+        // create DB profile (do not store password)
+        await set(ref(db, "users/" + cred.user.uid), {
+          name: name,
+          email: email,
+          balance: 0,
+          role: "user",
+          createdAt: Date.now()
+        });
+
+        hideSpinner("register");
+        showToast("Registration successful — redirecting...", "success");
+        localStorage.setItem("currentUserId", cred.user.uid);
+        // redirect to dashboard
+        setTimeout(()=>{ window.location.href = "dashboard.html"; }, 800);
+      }catch(err){
+        hideSpinner("register");
+        console.error(err);
+        // user-friendly messages
+        const msg = (err && err.code) ? (() => {
+          if(err.code === "auth/email-already-in-use") return "Email already in use";
+          if(err.code === "auth/invalid-email") return "Invalid email address";
+          if(err.code === "auth/weak-password") return "Weak password (min 6 chars)";
+          return err.message || "Registration failed";
+        })() : (err.message || "Registration failed");
+        showToast(msg, "error");
+      }
+    };
+
+    // === LOGIN (Firebase Auth) ===
+    window.login=async function(){
+      showSpinner("login");
+      const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+      const pass=document.getElementById('loginPassword').value.trim();
+
+      if(!email||!pass){hideSpinner("login");showToast("Enter email & password","error");return;}
+      if(!validateEmail(email)){hideSpinner("login");showToast("Invalid email","error");return;}
+
+      try{
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        // set local id for compatibility with existing code
+        localStorage.setItem("currentUserId", cred.user.uid);
+
+        // fetch DB profile to check role
+        const snap = await get(ref(db, "users/" + cred.user.uid));
+        const data = snap.exists() ? snap.val() : null;
+        const role = data && data.role ? data.role : "user";
+
+        hideSpinner("login");
+        showToast("Login successful — redirecting...", "success");
+        setTimeout(()=>{ window.location.href = (role === "admin") ? "admin.html" : "dashboard.html"; }, 800);
+      }catch(err){
+        hideSpinner("login");
+        console.error(err);
+        const msg = (err && err.code) ? (() => {
+          if(err.code === "auth/user-not-found") return "User not found";
+          if(err.code === "auth/wrong-password") return "Incorrect password";
+          if(err.code === "auth/invalid-email") return "Invalid email address";
+          return err.message || "Login failed";
+        })() : (err.message || "Login failed");
+        showToast(msg, "error");
+      }
+    };
+
+    // Expose signOut function (if needed elsewhere)
+    window.signOutUser = async function(){
+      try{
+        await signOut(auth);
+        localStorage.removeItem("currentUserId");
+        showToast("Signed out", "success");
+        setTimeout(()=>{ window.location.href = "auth.html"; }, 600);
+      }catch(e){
+        console.error("Sign out failed", e);
+        showToast("Sign out failed", "error");
+      }
+    };
+
+  </script>
+</body>
+</html>
