@@ -1,37 +1,41 @@
-const fetch = global.fetch || require('node-fetch');
-const PAYSTACK_INIT_URL = "https://api.paystack.co/transaction/initialize";
+import axios from "axios";
+import { db } from "./config.js";
 
-exports.handler = async (event, context) => {
-  try{
-    const body = JSON.parse(event.body);
-    const { amount, uid, email } = body;
-    if(!amount || !uid) return { statusCode: 400, body: 'Missing amount or uid' };
+export async function handler(event) {
+  try {
+    const { uid, amount } = JSON.parse(event.body);
 
-    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
-    if(!PAYSTACK_SECRET) return { statusCode: 500, body: 'Paystack secret not configured' };
+    // Check active deposits (max 3)
+    const userDepositsRef = db.ref(`deposits/${uid}`);
+    const snapshot = await userDepositsRef.once("value");
+    const deposits = snapshot.val() || {};
+    const active = Object.values(deposits).filter(
+      d => ["submitted", "processing"].includes(d.status)
+    );
+    if (active.length >= 3) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Max 3 active deposits allowed" }) };
+    }
 
-    const metadata = { uid, email };
-
-    const resp = await fetch(PAYSTACK_INIT_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        amount: amount * 100,
-        email: email || 'no-email@unknown.com',
-        metadata
-      })
+    // Create Paystack transaction
+    const response = await axios.post("https://api.paystack.co/transaction/initialize", {
+      amount: amount * 100,
+      email: `${uid}@anyverified.app`,
+      callback_url: "https://anyverified.netlify.app/.netlify/functions/verifyPayment"
+    }, {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET}` }
     });
 
-    const data = await resp.json();
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data)
-    };
-  }catch(err){
-    console.error('init error', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    const data = response.data.data;
+    const ref = data.reference;
+
+    await userDepositsRef.child(ref).set({
+      amount,
+      status: "submitted",
+      createdAt: Date.now()
+    });
+
+    return { statusCode: 200, body: JSON.stringify({ authorization_url: data.authorization_url }) };
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
-};
+}
