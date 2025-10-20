@@ -1,41 +1,46 @@
-import axios from "axios";
-import { db } from "./config.js";
+const axios = require("axios");
 
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
-    const { uid, amount } = JSON.parse(event.body);
+    const body = JSON.parse(event.body || "{}");
+    const { uid, amount } = body;
 
-    // Check active deposits (max 3)
-    const userDepositsRef = db.ref(`deposits/${uid}`);
-    const snapshot = await userDepositsRef.once("value");
-    const deposits = snapshot.val() || {};
-    const active = Object.values(deposits).filter(
-      d => ["submitted", "processing"].includes(d.status)
-    );
-    if (active.length >= 3) {
-      return { statusCode: 400, body: JSON.stringify({ error: "Max 3 active deposits allowed" }) };
+    // Validation
+    if (!uid || !amount) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing uid or amount" }),
+      };
     }
 
-    // Create Paystack transaction
-    const response = await axios.post("https://api.paystack.co/transaction/initialize", {
-      amount: amount * 100,
-      email: `${uid}@anyverified.app`,
-      callback_url: "https://anyverified.netlify.app/.netlify/functions/verifyPayment"
-    }, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET}` }
-    });
+    // Example: Initialize Paystack payment (edit with your secret key)
+    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+    const headers = {
+      Authorization: `Bearer ${PAYSTACK_SECRET}`,
+      "Content-Type": "application/json",
+    };
 
-    const data = response.data.data;
-    const ref = data.reference;
+    const response = await axios.post(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        email: `${uid}@example.com`,
+        amount: amount * 100, // Paystack needs kobo
+      },
+      { headers }
+    );
 
-    await userDepositsRef.child(ref).set({
-      amount,
-      status: "submitted",
-      createdAt: Date.now()
-    });
-
-    return { statusCode: 200, body: JSON.stringify({ authorization_url: data.authorization_url }) };
-  } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response.data),
+    };
+  } catch (error) {
+    console.error("Payment Error:", error.message);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Error starting payment",
+        message: error.message,
+      }),
+    };
   }
-}
+};
