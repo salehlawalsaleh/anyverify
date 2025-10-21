@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -17,11 +17,11 @@
     <form id="depositForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₦)</label>
-        <input id="amount" type="number" min="100" required
+        <input id="amount" name="amount" type="number" min="100" required
           class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500" />
       </div>
 
-      <button type="submit"
+      <button id="payBtn" type="submit"
         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition">
         Pay with Paystack
       </button>
@@ -44,94 +44,144 @@
   </div>
 
   <script type="module">
-    const uid = localStorage.getItem("uid") || "demoUser"; // replace with real auth uid
-    const email = localStorage.getItem("email") || "test@example.com";
-    const baseUrl = "/.netlify/functions";
+    // NOTE: replace demoUser/demo email with real auth values in production
+    const uid = localStorage.getItem('uid') || 'demoUser';
+    const email = localStorage.getItem('email') || 'test@example.com';
+    const baseUrl = '/.netlify/functions';
 
-    const depositForm = document.getElementById("depositForm");
-    const errorMsg = document.getElementById("errorMsg");
-    const pendingMsg = document.getElementById("pendingMsg");
-    const historyDiv = document.getElementById("history");
-    const refreshBtn = document.getElementById("refreshBtn");
+    const depositForm = document.getElementById('depositForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const pendingMsg = document.getElementById('pendingMsg');
+    const historyDiv = document.getElementById('history');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const payBtn = document.getElementById('payBtn');
 
-    // Load deposits
+    let paystackPublicKey = null;
+
+    async function getConfig() {
+      try {
+        const res = await fetch(`${baseUrl}/getConfig`);
+        if (!res.ok) throw new Error('Failed to load config');
+        const json = await res.json();
+        paystackPublicKey = json.PAYSTACK_PUBLIC || '';
+      } catch (err) {
+        console.error('getConfig error', err);
+        paystackPublicKey = '';
+      }
+    }
+
     async function loadDeposits() {
       historyDiv.innerHTML = `<p class='text-center text-gray-400'>Loading...</p>`;
       try {
-        const res = await fetch("https://ameernin-ba310-default-rtdb.firebaseio.com/deposits.json");
-        const data = await res.json() || {};
+        const res = await fetch(`${baseUrl}/getDeposits?uid=${encodeURIComponent(uid)}`);
+        if (!res.ok) throw new Error('Failed to fetch deposits');
+        const payload = await res.json();
+        const data = payload.deposits || {};
         const deposits = Object.entries(data)
-          .filter(([_, d]) => d.uid === uid)
-          .sort((a, b) => b[1].createdAt - a[1].createdAt);
+          .map(([id, d]) => ({ id, ...d }))
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-        const pending = deposits.filter(([_, d]) => d.status === "pending");
+        const pending = deposits.filter(d => d.status === 'pending');
         if (pending.length >= 3) {
-          pendingMsg.classList.remove("hidden");
+          pendingMsg.classList.remove('hidden');
           pendingMsg.textContent = `You have ${pending.length} active pending deposits.`;
         } else {
-          pendingMsg.classList.add("hidden");
+          pendingMsg.classList.add('hidden');
         }
 
         const recent = deposits.slice(0, 3);
         if (recent.length === 0) {
           historyDiv.innerHTML = `<p class='text-center text-gray-400'>No deposits found.</p>`;
         } else {
-          historyDiv.innerHTML = recent.map(([id, d]) => `
+          historyDiv.innerHTML = recent.map((d) => `
             <div class="flex justify-between bg-gray-100 rounded-lg p-2">
               <span>₦${d.amount}</span>
               <span class="${d.status === 'approved' ? 'text-green-600' : d.status === 'pending' ? 'text-yellow-600' : 'text-red-500'}">
                 ${d.status}
               </span>
             </div>
-          `).join("");
+          `).join('');
         }
       } catch (err) {
+        console.error('loadDeposits failed', err);
         historyDiv.innerHTML = `<p class='text-center text-red-500'>Failed to load deposits. Try refresh.</p>`;
       }
     }
 
-    refreshBtn.addEventListener("click", loadDeposits);
-    loadDeposits();
+    refreshBtn.addEventListener('click', loadDeposits);
 
-    // Handle deposit
-    depositForm.addEventListener("submit", async (e) => {
+    async function initializePaymentOnServer(amount) {
+      const res = await fetch(`${baseUrl}/initializePayment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, amount, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || (data.details && JSON.stringify(data.details)) || 'Initialize failed');
+      return data;
+    }
+
+    depositForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      errorMsg.classList.add("hidden");
+      errorMsg.classList.add('hidden');
 
-      const amount = parseFloat(document.getElementById("amount").value);
-      if (!amount || amount < 100) return alert("Minimum ₦100");
+      const amount = parseFloat(document.getElementById('amount').value);
+      if (!amount || amount < 100) return alert('Minimum ₦100');
+
+      // disable button while processing
+      payBtn.disabled = true;
+      payBtn.textContent = 'Processing...';
 
       try {
-        const res = await fetch(`${baseUrl}/initializePayment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid, amount, email }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to initialize payment");
+        // ensure we have public key
+        if (!paystackPublicKey) {
+          await getConfig();
+          if (!paystackPublicKey) {
+            throw new Error('Payment configuration missing. Contact support.');
+          }
+        }
 
+        const initData = await initializePaymentOnServer(amount);
+
+        // Use Paystack inline
         const handler = PaystackPop.setup({
-          key: "pk_test_6351d09de2b28b62e4e8e4869c0eb45a1e3dca11",
+          key: paystackPublicKey,
           email: email,
           amount: Math.round(amount * 100),
-          ref: data.reference,
+          ref: initData.reference, // server generated reference
           callback: function (response) {
+            // server-side verify
             fetch(`${baseUrl}/verifyPayment`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ reference: response.reference }),
-            }).then(() => loadDeposits());
+            })
+            .then(() => loadDeposits())
+            .catch(err => {
+              console.error('verifyPayment call failed', err);
+              loadDeposits();
+            });
           },
           onClose: function () {
-            alert("Transaction was not completed");
+            alert('Transaction was not completed');
           },
         });
         handler.openIframe();
       } catch (err) {
-        errorMsg.textContent = err.message;
-        errorMsg.classList.remove("hidden");
+        console.error('init payment error', err);
+        errorMsg.textContent = (err && err.message) || 'Failed to initialize payment';
+        errorMsg.classList.remove('hidden');
+      } finally {
+        payBtn.disabled = false;
+        payBtn.textContent = 'Pay with Paystack';
       }
     });
+
+    // initial actions
+    (async () => {
+      await getConfig();
+      await loadDeposits();
+    })();
   </script>
 </body>
 </html>
